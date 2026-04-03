@@ -96,9 +96,14 @@ function DLCModule({ userId }) {
   return (
     <div>
       {view !== "etiquette" && (
-        <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>
-            Produits {nbAlerte > 0 && <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: 12, fontWeight: 500, padding: "2px 9px", borderRadius: 20, marginLeft: 8 }}>{nbAlerte} alerte{nbAlerte > 1 ? "s" : ""}</span>}
+        <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>
+              Produits {nbAlerte > 0 && <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: 12, fontWeight: 500, padding: "2px 9px", borderRadius: 20, marginLeft: 8 }}>{nbAlerte} alerte{nbAlerte > 1 ? "s" : ""}</span>}
+            </span>
+            <button onClick={() => setShowNormesDLC(v => !v)} style={{ ...btnS, padding: "4px 10px", fontSize: 11, background: showNormesDLC ? "#EFF6FF" : "white", color: showNormesDLC ? "#1D4ED8" : "#555", border: showNormesDLC ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0" }}>
+              📏 Normes DLC
+            </button>
           </div>
           <button style={btnP} onClick={() => { setForm(makeDefaultForm()); setEditId(null); setView("ajouter"); }}>+ Ajouter</button>
         </div>
