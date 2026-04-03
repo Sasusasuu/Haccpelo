@@ -1086,6 +1086,7 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
   const [newPin, setNewPin] = useState("");
   const [newEmp, setNewEmp] = useState("");
   const [pinEntryError, setPinEntryError] = useState(false);
+  const [showRegistre, setShowRegistre] = useState(false);
 
   function tryUnlock() {
     if (verifyPin(settingsPin)) { setSettingsUnlocked(true); setSettingsPin(""); setPinEntryError(false); }
@@ -1093,7 +1094,7 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
   }
 
   return (
-    <div style={{ maxWidth: 440 }}>
+    <div style={{ maxWidth: 540 }}>
       {!settingsUnlocked ? (
         <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.5rem" }}>
           <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager requis</p>
@@ -1132,6 +1133,52 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
               <button onClick={async () => { if (newEmp.trim()) { await addEmployee(newEmp.trim()); setNewEmp(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter</button>
             </div>
           </div>
+
+          {/* Registre du personnel */}
+          <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>📋 Registre du personnel</p>
+              <button onClick={() => setShowRegistre(v => !v)} style={{ ...btnS, padding: "4px 12px", fontSize: 12 }}>
+                {showRegistre ? "Masquer" : "Afficher"}
+              </button>
+            </div>
+            {showRegistre && (
+              <div>
+                {employees.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "#888", padding: 8 }}>Aucun employé enregistré</div>
+                ) : (
+                  <div style={{ border: "1px solid #e5e5e5", borderRadius: 8, overflow: "hidden" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "#fafafa", borderBottom: "1px solid #e5e5e5" }}>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, fontSize: 11, color: "#888" }}>#</th>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, fontSize: 11, color: "#888" }}>Nom / Prénom</th>
+                          <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: 500, fontSize: 11, color: "#888" }}>Heures contrat</th>
+                          <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: 500, fontSize: 11, color: "#888" }}>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {employees.map((emp, i) => (
+                          <tr key={emp.id} style={{ borderBottom: i < employees.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+                            <td style={{ padding: "8px 10px", color: "#888", fontSize: 12 }}>{i + 1}</td>
+                            <td style={{ padding: "8px 10px", fontWeight: 500 }}>{emp.name}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "center" }}>{emp.contract_hours ? `${emp.contract_hours}h/sem` : "—"}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                              <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 20 }}>Actif</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div style={{ marginTop: 10, fontSize: 11, color: "#888", fontStyle: "italic" }}>
+                  📌 Ce registre est obligatoire et doit être tenu à jour (Article L1221-13 du Code du travail).
+                </div>
+              </div>
+            )}
+          </div>
+
           <button onClick={() => setSettingsUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
           {onSignOut && (
             <button onClick={onSignOut} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fee2e2", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Déconnexion</button>
