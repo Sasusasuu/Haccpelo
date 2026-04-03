@@ -206,7 +206,9 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
 
   const applySuggestion = () => {
     if (aiSuggestion?.dlc) {
-      setForm({ ...form, dlc: aiSuggestion.dlc });
+      const updates = { dlc: aiSuggestion.dlc };
+      if (aiSuggestion.categorie) updates.categorie = aiSuggestion.categorie;
+      setForm({ ...form, ...updates });
       setAiSuggestion(null);
     }
   };
