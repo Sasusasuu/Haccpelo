@@ -851,7 +851,7 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
                   return (
                     <td key={dayIdx} style={{ padding: "4px", verticalAlign: "top", borderLeft: "1px solid #f0f0f0" }}>
                       {daySlots.map(s => {
-                        const slotColor = s.role ? getRoleColor(s.role) : SLOT_COLORS[ei % SLOT_COLORS.length];
+                        const slotColor = s.role ? getRoleColor(s.role, roles) : SLOT_COLORS[ei % SLOT_COLORS.length];
                         return (
                           <div key={s.id} style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}`, borderRadius: 6, padding: "3px 5px", marginBottom: 2, fontSize: 11, display: "flex", flexDirection: "column", gap: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
