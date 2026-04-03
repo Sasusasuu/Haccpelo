@@ -594,7 +594,7 @@ function WeekTotalCell({ worked, contract }) {
   );
 }
 
-function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel }) {
+function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel, roles }) {
   function calcSlotMinutes(start, end) {
     const [sh, sm] = start.split(":").map(Number);
     const [eh, em] = end.split(":").map(Number);
