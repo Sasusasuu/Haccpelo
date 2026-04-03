@@ -690,7 +690,7 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
   );
 }
 
-function ParametresTab({ employees, setEmployees, contractHours, setContractHours, verifyPin, changePin }) {
+function ParametresTab({ employees, setEmployees, contractHours, setContractHours, verifyPin, changePin, onSignOut }) {
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
   const [newPin, setNewPin] = useState("");
