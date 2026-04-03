@@ -90,6 +90,7 @@ export type Database = {
           fab: string | null
           id: string
           nom: string
+          photo_url: string | null
           quantite: string | null
           updated_at: string
           user_id: string
@@ -101,6 +102,7 @@ export type Database = {
           fab?: string | null
           id?: string
           nom: string
+          photo_url?: string | null
           quantite?: string | null
           updated_at?: string
           user_id: string
@@ -112,6 +114,7 @@ export type Database = {
           fab?: string | null
           id?: string
           nom?: string
+          photo_url?: string | null
           quantite?: string | null
           updated_at?: string
           user_id?: string
