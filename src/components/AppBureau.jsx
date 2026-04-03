@@ -729,7 +729,7 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
     }
   }
 
-  const viewBtnStyle = (active) => ({ padding: "4px 12px", borderRadius: 6, fontSize: 12, background: active ? "#111" : "white", color: active ? "white" : "#555", border: active ? "1.5px solid #111" : "1px solid #d0d0d0", cursor: "pointer", fontWeight: active ? 600 : 400 });
+
 
   return (
     <div>
