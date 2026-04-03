@@ -743,6 +743,9 @@ function ParametresTab({ employees, setEmployees, contractHours, setContractHour
             </div>
           </div>
           <button onClick={() => setSettingsUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
+          {onSignOut && (
+            <button onClick={onSignOut} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fee2e2", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Déconnexion</button>
+          )}
         </div>
       )}
     </div>
