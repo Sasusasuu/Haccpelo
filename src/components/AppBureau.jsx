@@ -676,8 +676,6 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
   const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [], role: "" });
-  const [viewMode, setViewMode] = useState("semaine"); // jour, semaine, mois
-  const [selectedDayIdx, setSelectedDayIdx] = useState(() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; });
   const [copying, setCopying] = useState(false);
 
   function calcSlotMinutes(start, end) {
