@@ -58,6 +58,8 @@ function DLCModule({ userId }) {
   const [filtre, setFiltre] = useState("tous");
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showNormesDLC, setShowNormesDLC] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
