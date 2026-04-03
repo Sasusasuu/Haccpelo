@@ -24,7 +24,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
   const getExisting = (equip: string, period: string) => logsForDate.find((l: any) => l.equipment_name === equip && l.period === period);
   const getTempKey = (equip: string, period: string) => `${equip}__${period}`;
 
-  const handleSave = async (equip: string, period: string) => {
+  const handleSave = async (equip: string, period: "matin" | "soir") => {
     const key = getTempKey(equip, period);
     const val = temps[key];
     if (val === undefined || val === "") return;
