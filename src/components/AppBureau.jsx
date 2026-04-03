@@ -295,7 +295,7 @@ function ConfirmDeleteModal({ product, onConfirm, onCancel }) {
 }
 
 // ══ MODULE ÉQUIPE ══
-function EquipeModule() {
+function EquipeModule({ onSignOut }) {
   const [planTab, setPlanTab] = useState("planning");
   const [weekOffset, setWeekOffset] = useState(0);
   const [slots, setSlots] = useState(() => load("slots", {}));
@@ -336,7 +336,7 @@ function EquipeModule() {
       </div>
       {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} setSlots={setSlots} employees={employees} contractHours={contractHours} />}
       {planTab === "pointeuse" && <PointeuseTab employees={employees} pointages={pointages} setPointages={setPointages} verifyPin={verifyPin} />}
-      {planTab === "parametres" && <ParametresTab employees={employees} setEmployees={setEmployees} contractHours={contractHours} setContractHours={setContractHours} verifyPin={verifyPin} changePin={changePin} />}
+      {planTab === "parametres" && <ParametresTab employees={employees} setEmployees={setEmployees} contractHours={contractHours} setContractHours={setContractHours} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
     </div>
   );
 }
@@ -690,7 +690,7 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
   );
 }
 
-function ParametresTab({ employees, setEmployees, contractHours, setContractHours, verifyPin, changePin }) {
+function ParametresTab({ employees, setEmployees, contractHours, setContractHours, verifyPin, changePin, onSignOut }) {
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -743,6 +743,9 @@ function ParametresTab({ employees, setEmployees, contractHours, setContractHour
             </div>
           </div>
           <button onClick={() => setSettingsUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
+          {onSignOut && (
+            <button onClick={onSignOut} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fee2e2", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Déconnexion</button>
+          )}
         </div>
       )}
     </div>
@@ -755,7 +758,7 @@ const MAIN_TABS = [
   { id: "equipe", label: "👥 Équipe" },
 ];
 
-export default function App() {
+export default function App({ onSignOut }) {
   const [mainTab, setMainTab] = useState("dlc");
   return (
     <div style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", maxWidth: 920, margin: "0 auto", padding: "1rem", background: "white", minHeight: "100vh" }}>
@@ -781,7 +784,7 @@ export default function App() {
         </div>
       </div>
       {mainTab === "dlc" && <DLCModule />}
-      {mainTab === "equipe" && <EquipeModule />}
+      {mainTab === "equipe" && <EquipeModule onSignOut={onSignOut} />}
     </div>
   );
 }

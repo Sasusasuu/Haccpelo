@@ -17,19 +17,7 @@ const Index = () => {
     return <LoginPage />;
   }
 
-  return (
-    <div>
-      <div className="fixed top-2 right-2 z-50">
-        <button
-          onClick={signOut}
-          className="text-xs px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
-        >
-          Déconnexion
-        </button>
-      </div>
-      <AppBureau />
-    </div>
-  );
+  return <AppBureau onSignOut={signOut} />;
 };
 
 export default Index;
