@@ -978,14 +978,37 @@ function TemperaturesModule({ userId }) {
   // Get dates that have logs for navigation
   const uniqueDates = useMemo(() => [...new Set(logs.map(l => l.log_date))].sort().reverse(), [logs]);
 
+  const [showNormes, setShowNormes] = useState(false);
+
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>🌡️ Relevés de températures</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <input type="date" style={{ ...inp, width: "auto" }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>🌡️ Relevés de températures</span>
+          <button onClick={() => setShowNormes(v => !v)} style={{ ...btnS, padding: "4px 10px", fontSize: 11, background: showNormes ? "#EFF6FF" : "white", color: showNormes ? "#1D4ED8" : "#555", border: showNormes ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0" }}>
+            📏 Normes
+          </button>
         </div>
+        <input type="date" style={{ ...inp, width: "auto" }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
       </div>
+
+      {showNormes && (
+        <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: 13, color: "#1e3a5f", lineHeight: 1.7 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>📏 Normes réglementaires de températures (HACCP)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 20px" }}>
+            <div><strong>🧊 Réfrigérateurs :</strong></div><div>0°C à +3°C (idéal) — max +5°C</div>
+            <div><strong>❄️ Congélateurs :</strong></div><div>-18°C ou moins</div>
+            <div><strong>🥩 Viandes fraîches :</strong></div><div>+2°C à +4°C</div>
+            <div><strong>🐟 Poissons frais :</strong></div><div>0°C à +2°C</div>
+            <div><strong>🥛 Produits laitiers :</strong></div><div>+2°C à +6°C</div>
+            <div><strong>🥗 Préparations froides :</strong></div><div>+3°C max</div>
+            <div><strong>🍳 Plats chauds (maintien) :</strong></div><div>+63°C minimum</div>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
+            ⚠️ Tout dépassement doit être signalé et corrigé immédiatement. Les relevés doivent être effectués 2 fois/jour (matin et soir).
+          </div>
+        </div>
+      )}
 
       <div style={{ border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
