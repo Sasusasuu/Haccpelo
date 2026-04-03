@@ -741,13 +741,19 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
                   const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
                   return (
                     <td key={dayIdx} style={{ padding: "4px", verticalAlign: "top", borderLeft: "1px solid #f0f0f0" }}>
-                      {daySlots.map(s => (
-                        <div key={s.id} style={{ background: SLOT_COLORS[ei % SLOT_COLORS.length] + "22", border: `1px solid ${SLOT_COLORS[ei % SLOT_COLORS.length]}`, borderRadius: 4, padding: "2px 4px", marginBottom: 2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                          <span>{s.start_time}–{s.end_time}</span>
-                          <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
-                        </div>
-                      ))}
-                      <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [] }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
+                      {daySlots.map(s => {
+                        const slotColor = s.role ? getRoleColor(s.role) : SLOT_COLORS[ei % SLOT_COLORS.length];
+                        return (
+                          <div key={s.id} style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}`, borderRadius: 6, padding: "3px 5px", marginBottom: 2, fontSize: 11, display: "flex", flexDirection: "column", gap: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                              <span style={{ fontWeight: 500 }}>{s.start_time}–{s.end_time}</span>
+                              <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
+                            </div>
+                            {s.role && <span style={{ fontSize: 10, fontWeight: 600, color: slotColor }}>{s.role}</span>}
+                          </div>
+                        );
+                      })}
+                      <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
                     </td>
                   );
                 })}
