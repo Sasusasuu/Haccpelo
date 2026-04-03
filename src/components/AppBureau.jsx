@@ -1112,8 +1112,7 @@ const FREQUENCIES = [
   { value: "mensuel", label: "Mensuel", emoji: "🗓" },
 ];
 
-function NettoyageModule({ userId }) {
-  const { tasks, logs, addTask, deleteTask, logDone, deleteLog } = useCleaningPlan(userId);
+function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone, deleteCleaningLog: deleteLog }) {
   const [showAdd, setShowAdd] = useState(false);
   const [newTask, setNewTask] = useState({ zone: "", task_name: "", frequency: "quotidien" });
   const [doneBy, setDoneBy] = useState("");
