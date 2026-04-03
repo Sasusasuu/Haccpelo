@@ -37,6 +37,14 @@ const inp = { width: "100%", padding: "8px 10px", border: "1px solid #d0d0d0", b
 const lbl = { fontSize: 13, color: "#555", marginBottom: 4, display: "block" };
 const btnP = { background: "#111", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 14, cursor: "pointer", fontWeight: 500 };
 const btnS = { background: "transparent", color: "#111", border: "1px solid #d0d0d0", borderRadius: 8, padding: "8px 18px", fontSize: 14, cursor: "pointer" };
+function ScanField({ label, value, highlight }) {
+  return (
+    <div style={{ padding: "2px 0" }}>
+      <span style={{ color: "#888", fontSize: 11 }}>{label} : </span>
+      <span style={{ fontWeight: 500, color: highlight ? "#dc2626" : "#111" }}>{value}</span>
+    </div>
+  );
+}
 
 // ══ MODULE DLC ══
 function DLCModule({ userId }) {
