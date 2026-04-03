@@ -295,7 +295,7 @@ function ConfirmDeleteModal({ product, onConfirm, onCancel }) {
 }
 
 // ══ MODULE ÉQUIPE ══
-function EquipeModule() {
+function EquipeModule({ onSignOut }) {
   const [planTab, setPlanTab] = useState("planning");
   const [weekOffset, setWeekOffset] = useState(0);
   const [slots, setSlots] = useState(() => load("slots", {}));
