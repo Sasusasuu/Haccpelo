@@ -94,7 +94,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
                   <TableCell className="font-medium">
                     {equip.equipment_type === "congelateur" ? "❄️" : "🧊"} {equip.name}
                   </TableCell>
-                  {["matin", "soir"].map(period => {
+                  {(["matin", "soir"] as const).map(period => {
                     const existing = getExisting(equip.name, period);
                     const key = getTempKey(equip.name, period);
                     return (
