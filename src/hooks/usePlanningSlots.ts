@@ -28,12 +28,12 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
-  const addSlot = async (employeeId: string, dayIndex: number, startTime: string, endTime: string) => {
+  const addSlot = async (employeeId: string, dayIndex: number, startTime: string, endTime: string, role?: string) => {
     if (!userId) return;
     const { data, error } = await supabase
       .from("planning_slots")
-      .insert({ user_id: userId, employee_id: employeeId, week_key: weekKey, day_index: dayIndex, start_time: startTime, end_time: endTime })
-      .select("id, employee_id, week_key, day_index, start_time, end_time")
+      .insert({ user_id: userId, employee_id: employeeId, week_key: weekKey, day_index: dayIndex, start_time: startTime, end_time: endTime, role: role || null })
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role")
       .single();
     if (!error && data) setSlots(prev => [...prev, data]);
     return data;
