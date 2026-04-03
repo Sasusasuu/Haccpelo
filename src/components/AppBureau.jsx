@@ -675,7 +675,7 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
-  const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [] });
+  const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [], role: "" });
 
   function calcSlotMinutes(start, end) {
     const [sh, sm] = start.split(":").map(Number);
