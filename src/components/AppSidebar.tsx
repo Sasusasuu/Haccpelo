@@ -65,7 +65,7 @@ export function AppSidebar({ onSignOut }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* HACCP */}
-        <SidebarGroup defaultOpen>
+        <SidebarGroup>
           <SidebarGroupLabel>HACCP</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
