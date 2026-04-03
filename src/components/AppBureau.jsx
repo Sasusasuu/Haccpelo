@@ -1278,7 +1278,66 @@ function NettoyageModule({ userId }) {
   );
 }
 
-// ══ MODULE HACCP (regroupe DLC + Températures + Nettoyage) ══
+// ══ PARAMÈTRES HACCP (protégé par PIN) ══
+function HACCPParametresTab({ userId }) {
+  const { verifyPin, changePin } = useSettings(userId);
+  const [unlocked, setUnlocked] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [newPin, setNewPin] = useState("");
+
+  function tryUnlock() {
+    if (verifyPin(pin)) { setUnlocked(true); setPin(""); setPinError(false); }
+    else { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 1500); }
+  }
+
+  return (
+    <div style={{ maxWidth: 440 }}>
+      {!unlocked ? (
+        <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.5rem" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager requis</p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="password" maxLength={4} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => e.key === "Enter" && tryUnlock()} placeholder="••••"
+              style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: pinError ? "1px solid #fca5a5" : "1px solid #d0d0d0", background: pinError ? "#fee2e2" : "white", color: "#111", fontSize: 16, letterSpacing: 6 }} />
+            <button onClick={tryUnlock} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Accéder</button>
+          </div>
+          {pinError && <p style={{ margin: "8px 0 0", fontSize: 12, color: "#dc2626" }}>Code incorrect</p>}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager HACCP</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input type="password" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value)} placeholder="Nouveau code (4 chiffres)" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 14 }} />
+              <button onClick={async () => { if (newPin.length === 4) { await changePin(newPin); setNewPin(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #86efac", background: "#dcfce7", color: "#16a34a", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Enregistrer</button>
+            </div>
+          </div>
+          <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Seuils de température</p>
+            <div style={{ fontSize: 13, color: "#555", lineHeight: 1.7 }}>
+              <div>🧊 <strong>Réfrigérateurs :</strong> 0°C à +3°C (max +5°C)</div>
+              <div>❄️ <strong>Congélateurs :</strong> -18°C ou moins</div>
+              <div>🥩 <strong>Viandes fraîches :</strong> +2°C à +4°C</div>
+              <div>🐟 <strong>Poissons frais :</strong> 0°C à +2°C</div>
+            </div>
+          </div>
+          <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Normes DLC</p>
+            <div style={{ fontSize: 13, color: "#555", lineHeight: 1.7 }}>
+              <div>🥩 <strong>Viandes fraîches :</strong> DLC 3 à 5 jours après ouverture</div>
+              <div>🐟 <strong>Poissons frais :</strong> DLC 1 à 2 jours max</div>
+              <div>🥗 <strong>Préparations maison :</strong> DLC J+3 max (72h)</div>
+              <div>❄️ <strong>Produits décongelés :</strong> Consommer dans les 24h</div>
+            </div>
+          </div>
+          <button onClick={() => setUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══ MODULE HACCP (regroupe DLC + Températures + Nettoyage + Paramètres) ══
 function HACCPModule({ userId }) {
   const [subTab, setSubTab] = useState("dlc");
   const subBtnStyle = (active) => ({
@@ -1294,10 +1353,12 @@ function HACCPModule({ userId }) {
         <button onClick={() => setSubTab("dlc")} style={subBtnStyle(subTab === "dlc")}>🗓 Gestion DLC</button>
         <button onClick={() => setSubTab("temperatures")} style={subBtnStyle(subTab === "temperatures")}>🌡️ Températures</button>
         <button onClick={() => setSubTab("nettoyage")} style={subBtnStyle(subTab === "nettoyage")}>🧹 Nettoyage</button>
+        <button onClick={() => setSubTab("parametres")} style={subBtnStyle(subTab === "parametres")}>⚙️ Paramètres</button>
       </div>
       {subTab === "dlc" && <DLCModule userId={userId} />}
       {subTab === "temperatures" && <TemperaturesModule userId={userId} />}
       {subTab === "nettoyage" && <NettoyageModule userId={userId} />}
+      {subTab === "parametres" && <HACCPParametresTab userId={userId} />}
     </div>
   );
 }
