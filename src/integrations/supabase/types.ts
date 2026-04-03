@@ -106,6 +106,33 @@ export type Database = {
         }
         Relationships: []
       }
+      equipments: {
+        Row: {
+          created_at: string
+          equipment_type: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_type?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipment_type?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       planning_slots: {
         Row: {
           created_at: string
