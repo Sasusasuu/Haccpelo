@@ -622,7 +622,7 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel, r
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 13, fontWeight: 500, color: "#444", display: "block", marginBottom: 8 }}>🎯 Rôle</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {ROLES.map(r => {
+            {roles.map(r => {
               const selected = slotForm.role === r.label;
               return (
                 <button key={r.label} onClick={() => setSlotForm({ ...slotForm, role: selected ? "" : r.label })}
