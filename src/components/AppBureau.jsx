@@ -1113,8 +1113,6 @@ const FREQUENCIES = [
 ];
 
 function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone, deleteCleaningLog: deleteLog }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [newTask, setNewTask] = useState({ zone: "", task_name: "", frequency: "quotidien" });
   const [doneBy, setDoneBy] = useState("");
   const [filterFreq, setFilterFreq] = useState("tous");
 
@@ -1122,12 +1120,6 @@ function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, log
 
   const isTaskDoneToday = (taskId) => logs.some(l => l.task_id === taskId && l.done_date === today);
   const lastDone = (taskId) => logs.find(l => l.task_id === taskId);
-
-  const zones = useMemo(() => {
-    const z = {};
-    tasks.forEach(t => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
-    return z;
-  }, [tasks]);
 
   const filteredTasks = useMemo(() => {
     if (filterFreq === "tous") return tasks;
@@ -1140,19 +1132,12 @@ function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, log
     return z;
   }, [filteredTasks]);
 
-  const handleAddTask = async () => {
-    if (!newTask.zone.trim() || !newTask.task_name.trim()) return;
-    await addTask({ zone: newTask.zone.trim(), task_name: newTask.task_name.trim(), frequency: newTask.frequency });
-    setNewTask({ zone: "", task_name: "", frequency: "quotidien" });
-  };
-
   const handleMarkDone = async (taskId) => {
     if (!doneBy.trim()) return;
     await logDone(taskId, doneBy.trim());
   };
 
   const doneToday = tasks.filter(t => isTaskDoneToday(t.id)).length;
-  const totalFiltered = filteredTasks.length;
 
   return (
     <div>
