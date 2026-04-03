@@ -525,7 +525,7 @@ function EquipeModule({ userId, onSignOut }) {
   const weekKey = useMemo(() => makeWeekKey(dates), [dates]);
 
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
-  const { slots, addSlots, deleteSlot } = usePlanningSlots(userId, weekKey);
+  const { slots, addSlots, deleteSlot, fetchSlotsByWeekKey } = usePlanningSlots(userId, weekKey);
   const { entries, clockIn, clockOut } = useTimeEntries(userId);
   const { verifyPin, changePin } = useSettings(userId);
 
@@ -538,7 +538,7 @@ function EquipeModule({ userId, onSignOut }) {
           <button key={t} onClick={() => setPlanTab(t)} style={planBtnStyle(planTab === t)}>{l}</button>
         ))}
       </div>
-      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} />}
+      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} fetchSlotsByWeekKey={fetchSlotsByWeekKey} />}
       {planTab === "pointeuse" && <PointeuseTab employees={employees} entries={entries} clockIn={clockIn} clockOut={clockOut} verifyPin={verifyPin} />}
       {planTab === "parametres" && <ParametresTab employees={employees} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
     </div>
