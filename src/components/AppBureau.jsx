@@ -525,7 +525,7 @@ function EquipeModule({ userId, onSignOut }) {
   const weekKey = useMemo(() => makeWeekKey(dates), [dates]);
 
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
-  const { slots, addSlots, deleteSlot } = usePlanningSlots(userId, weekKey);
+  const { slots, addSlots, deleteSlot, fetchSlotsByWeekKey } = usePlanningSlots(userId, weekKey);
   const { entries, clockIn, clockOut } = useTimeEntries(userId);
   const { verifyPin, changePin } = useSettings(userId);
 
@@ -538,7 +538,7 @@ function EquipeModule({ userId, onSignOut }) {
           <button key={t} onClick={() => setPlanTab(t)} style={planBtnStyle(planTab === t)}>{l}</button>
         ))}
       </div>
-      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} />}
+      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} fetchSlotsByWeekKey={fetchSlotsByWeekKey} />}
       {planTab === "pointeuse" && <PointeuseTab employees={employees} entries={entries} clockIn={clockIn} clockOut={clockOut} verifyPin={verifyPin} />}
       {planTab === "parametres" && <ParametresTab employees={employees} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
     </div>
@@ -671,11 +671,14 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
   );
 }
 
-function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees }) {
+function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees, fetchSlotsByWeekKey }) {
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
   const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [], role: "" });
+  const [viewMode, setViewMode] = useState("semaine"); // jour, semaine, mois
+  const [selectedDayIdx, setSelectedDayIdx] = useState(() => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; });
+  const [copying, setCopying] = useState(false);
 
   function calcSlotMinutes(start, end) {
     const [sh, sm] = start.split(":").map(Number);
@@ -696,6 +699,17 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
     return result;
   }, [slots, employees]);
 
+  // Month data for monthly view
+  const monthWeeks = useMemo(() => {
+    if (viewMode !== "mois") return [];
+    const weeks = [];
+    for (let i = -2; i <= 2; i++) {
+      const wDates = getWeekDates(weekOffset + i);
+      weeks.push({ dates: wDates, weekKey: makeWeekKey(wDates), offset: weekOffset + i });
+    }
+    return weeks;
+  }, [weekOffset, viewMode]);
+
   async function addSlot() {
     if (!modal) return;
     const { empId, dayIdx } = modal;
@@ -707,9 +721,33 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
     setModal(null);
   }
 
+  async function copyPreviousWeek() {
+    if (copying) return;
+    setCopying(true);
+    try {
+      const prevDates = getWeekDates(weekOffset - 1);
+      const prevWeekKey = makeWeekKey(prevDates);
+      const prevSlots = await fetchSlotsByWeekKey(prevWeekKey);
+      if (prevSlots.length === 0) { setCopying(false); return; }
+      const entries = prevSlots.map(s => ({
+        employeeId: s.employee_id,
+        dayIndex: s.day_index,
+        startTime: s.start_time,
+        endTime: s.end_time,
+        role: s.role || undefined,
+      }));
+      await addSlots(entries);
+    } finally {
+      setCopying(false);
+    }
+  }
+
+  const viewBtnStyle = (active) => ({ padding: "4px 12px", borderRadius: 6, fontSize: 12, background: active ? "#111" : "white", color: active ? "white" : "#555", border: active ? "1.5px solid #111" : "1px solid #d0d0d0", cursor: "pointer", fontWeight: active ? 600 : 400 });
+
   return (
     <div>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 16, position: "relative" }}>
+      {/* Navigation bar */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, position: "relative" }}>
         <button onClick={() => setWeekOffset(w => w - 1)} style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid #d0d0d0", background: "transparent", cursor: "pointer", color: "#111" }}>‹</button>
         <span onClick={() => { setCalOpen(o => !o); setCalMonth(new Date(dates[0].getFullYear(), dates[0].getMonth(), 1)); }}
           style={{ fontSize: 14, fontWeight: 500, cursor: "pointer", padding: "4px 10px", borderRadius: 8, border: "1px solid #d0d0d0", userSelect: "none" }}>
@@ -719,52 +757,180 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
         <button onClick={() => { setWeekOffset(0); setCalOpen(false); }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "transparent", cursor: "pointer", fontSize: 12, color: "#888" }}>Aujourd'hui</button>
         {calOpen && <CalendarPopup calMonth={calMonth} setCalMonth={setCalMonth} weekOffset={weekOffset} setWeekOffset={setWeekOffset} setCalOpen={setCalOpen} />}
       </div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-          <colgroup><col style={{ width: 90 }} />{dates.map((_, i) => <col key={i} />)}<col style={{ width: 64 }} /></colgroup>
-          <thead>
-            <tr>
-              <th style={{ fontSize: 12, fontWeight: 500, color: "#888", textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e5e5e5" }}>Employé</th>
-              {dates.map((d, i) => (
-                <th key={i} style={{ fontSize: 12, fontWeight: 500, color: "#888", textAlign: "center", padding: "6px 4px", borderBottom: "1px solid #e5e5e5" }}>
-                  {DAYS[i]}<br /><span style={{ fontWeight: 400 }}>{fmtShort(d)}</span>
-                </th>
-              ))}
-              <th style={{ fontSize: 12, fontWeight: 500, color: "#888", textAlign: "center", padding: "6px 4px", borderBottom: "1px solid #e5e5e5" }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {employees.map((emp, ei) => (
-              <tr key={emp.id} style={{ background: ei % 2 === 0 ? "white" : "#fafafa" }}>
-                <td style={{ fontSize: 13, fontWeight: 500, padding: "8px 8px" }}>{emp.name}</td>
-                {dates.map((_, dayIdx) => {
-                  const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
-                  return (
-                    <td key={dayIdx} style={{ padding: "4px", verticalAlign: "top", borderLeft: "1px solid #f0f0f0" }}>
+
+      {/* View mode toggle + copy button */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 16, justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button onClick={() => setViewMode("jour")} style={viewBtnStyle(viewMode === "jour")}>📅 Jour</button>
+          <button onClick={() => setViewMode("semaine")} style={viewBtnStyle(viewMode === "semaine")}>📋 Semaine</button>
+          <button onClick={() => setViewMode("mois")} style={viewBtnStyle(viewMode === "mois")}>🗓 Mois</button>
+        </div>
+        <button onClick={copyPreviousWeek} disabled={copying} style={{ ...btnS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 4, opacity: copying ? 0.5 : 1 }}>
+          📋 {copying ? "Copie..." : "Reproduire semaine précédente"}
+        </button>
+      </div>
+
+      {/* DAILY VIEW */}
+      {viewMode === "jour" && (
+        <div>
+          <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
+            {DAYS.map((day, i) => {
+              const isToday = dates[i].toISOString().split("T")[0] === todayStr();
+              return (
+                <button key={i} onClick={() => setSelectedDayIdx(i)} style={{
+                  padding: "6px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                  background: selectedDayIdx === i ? "#111" : isToday ? "#f0f0f0" : "white",
+                  color: selectedDayIdx === i ? "white" : "#111",
+                  border: selectedDayIdx === i ? "1.5px solid #111" : "1px solid #d0d0d0",
+                  fontWeight: selectedDayIdx === i ? 600 : 400,
+                }}>
+                  {day} {fmtShort(dates[i])}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {employees.map(emp => {
+              const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === selectedDayIdx);
+              return (
+                <div key={emp.id} style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{emp.name}</span>
+                    <button onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx: selectedDayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" }); }}
+                      style={{ ...btnS, padding: "4px 12px", fontSize: 12 }}>+ Créneau</button>
+                  </div>
+                  {daySlots.length === 0 ? (
+                    <div style={{ fontSize: 12, color: "#bbb", padding: "4px 0" }}>Aucun créneau</div>
+                  ) : (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {daySlots.map(s => {
-                        const slotColor = s.role ? getRoleColor(s.role) : SLOT_COLORS[ei % SLOT_COLORS.length];
+                        const slotColor = s.role ? getRoleColor(s.role) : "#888";
                         return (
-                          <div key={s.id} style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}`, borderRadius: 6, padding: "3px 5px", marginBottom: 2, fontSize: 11, display: "flex", flexDirection: "column", gap: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                              <span style={{ fontWeight: 500 }}>{s.start_time}–{s.end_time}</span>
-                              <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
+                          <div key={s.id} style={{ background: slotColor + "18", border: `1.5px solid ${slotColor}`, borderRadius: 8, padding: "8px 14px", display: "flex", flexDirection: "column", gap: 2 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 16, fontWeight: 700 }}>{s.start_time} – {s.end_time}</span>
+                              <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 12 }}>✕</span>
                             </div>
-                            {s.role && <span style={{ fontSize: 10, fontWeight: 600, color: slotColor }}>{s.role}</span>}
+                            {s.role && <span style={{ fontSize: 12, fontWeight: 600, color: slotColor }}>{s.role}</span>}
+                            <span style={{ fontSize: 11, color: "#888" }}>{fmtDuration(calcSlotMinutes(s.start_time, s.end_time) / 60)}</span>
                           </div>
                         );
                       })}
-                      <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
-                    </td>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* WEEKLY VIEW (existing) */}
+      {viewMode === "semaine" && (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+            <colgroup><col style={{ width: 90 }} />{dates.map((_, i) => <col key={i} />)}<col style={{ width: 64 }} /></colgroup>
+            <thead>
+              <tr>
+                <th style={{ fontSize: 12, fontWeight: 500, color: "#888", textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e5e5e5" }}>Employé</th>
+                {dates.map((d, i) => (
+                  <th key={i} style={{ fontSize: 12, fontWeight: 500, color: "#888", textAlign: "center", padding: "6px 4px", borderBottom: "1px solid #e5e5e5" }}>
+                    {DAYS[i]}<br /><span style={{ fontWeight: 400 }}>{fmtShort(d)}</span>
+                  </th>
+                ))}
+                <th style={{ fontSize: 12, fontWeight: 500, color: "#888", textAlign: "center", padding: "6px 4px", borderBottom: "1px solid #e5e5e5" }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map((emp, ei) => (
+                <tr key={emp.id} style={{ background: ei % 2 === 0 ? "white" : "#fafafa" }}>
+                  <td style={{ fontSize: 13, fontWeight: 500, padding: "8px 8px" }}>{emp.name}</td>
+                  {dates.map((_, dayIdx) => {
+                    const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
+                    return (
+                      <td key={dayIdx} style={{ padding: "4px", verticalAlign: "top", borderLeft: "1px solid #f0f0f0" }}>
+                        {daySlots.map(s => {
+                          const slotColor = s.role ? getRoleColor(s.role) : SLOT_COLORS[ei % SLOT_COLORS.length];
+                          return (
+                            <div key={s.id} style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}`, borderRadius: 6, padding: "3px 5px", marginBottom: 2, fontSize: 11, display: "flex", flexDirection: "column", gap: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                                <span style={{ fontWeight: 500 }}>{s.start_time}–{s.end_time}</span>
+                                <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
+                              </div>
+                              {s.role && <span style={{ fontSize: 10, fontWeight: 600, color: slotColor }}>{s.role}</span>}
+                            </div>
+                          );
+                        })}
+                        <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: "center", fontSize: 13, fontWeight: 500, borderLeft: "1px solid #e5e5e5", padding: "8px 4px" }}>
+                    <WeekTotalCell worked={parseFloat(weekHours[emp.id] || "0")} contract={emp.contract_hours} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* MONTHLY VIEW */}
+      {viewMode === "mois" && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "#111" }}>
+            Vue mensuelle — {dates[0].toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: "8px 6px", textAlign: "left", fontSize: 11, color: "#888", borderBottom: "1px solid #e5e5e5", width: 90 }}>Employé</th>
+                  {monthWeeks.map((w, wi) => (
+                    <th key={wi} style={{ padding: "8px 4px", textAlign: "center", fontSize: 11, color: w.offset === weekOffset ? "#1D4ED8" : "#888", borderBottom: "1px solid #e5e5e5", fontWeight: w.offset === weekOffset ? 700 : 500, background: w.offset === weekOffset ? "#EFF6FF" : "transparent", cursor: "pointer" }}
+                      onClick={() => { setWeekOffset(w.offset); setViewMode("semaine"); }}>
+                      {fmtShort(w.dates[0])} – {fmtShort(w.dates[6])}
+                    </th>
+                  ))}
+                  <th style={{ padding: "8px 4px", textAlign: "center", fontSize: 11, color: "#888", borderBottom: "1px solid #e5e5e5", width: 60 }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp, ei) => {
+                  const currentWeekH = parseFloat(weekHours[emp.id] || "0");
+                  // For month view, we only have current week's slots loaded — show that
+                  return (
+                    <tr key={emp.id} style={{ background: ei % 2 === 0 ? "white" : "#fafafa" }}>
+                      <td style={{ padding: "10px 6px", fontWeight: 500, fontSize: 13 }}>{emp.name}</td>
+                      {monthWeeks.map((w, wi) => {
+                        if (w.offset === weekOffset) {
+                          const empSlots = slots.filter(s => s.employee_id === emp.id);
+                          let totalMin = 0;
+                          empSlots.forEach(s => { totalMin += calcSlotMinutes(s.start_time, s.end_time); });
+                          const h = (totalMin / 60).toFixed(1);
+                          return (
+                            <td key={wi} style={{ padding: "10px 4px", textAlign: "center", background: "#EFF6FF", fontWeight: 600, color: "#1D4ED8" }}>
+                              {h}h
+                            </td>
+                          );
+                        }
+                        return <td key={wi} style={{ padding: "10px 4px", textAlign: "center", color: "#ccc" }}>—</td>;
+                      })}
+                      <td style={{ padding: "10px 4px", textAlign: "center", fontWeight: 600, borderLeft: "1px solid #e5e5e5" }}>
+                        {currentWeekH}h
+                      </td>
+                    </tr>
                   );
                 })}
-                <td style={{ textAlign: "center", fontSize: 13, fontWeight: 500, borderLeft: "1px solid #e5e5e5", padding: "8px 4px" }}>
-                  <WeekTotalCell worked={parseFloat(weekHours[emp.id] || "0")} contract={emp.contract_hours} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "#888", fontStyle: "italic" }}>
+            💡 Cliquez sur une semaine pour voir le détail en vue hebdomadaire.
+          </div>
+        </div>
+      )}
+
       {modal && <SlotModal modal={modal} dates={dates} slotForm={slotForm} setSlotForm={setSlotForm} onConfirm={addSlot} onCancel={() => setModal(null)} />}
     </div>
   );
@@ -920,6 +1086,7 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
   const [newPin, setNewPin] = useState("");
   const [newEmp, setNewEmp] = useState("");
   const [pinEntryError, setPinEntryError] = useState(false);
+  const [showRegistre, setShowRegistre] = useState(false);
 
   function tryUnlock() {
     if (verifyPin(settingsPin)) { setSettingsUnlocked(true); setSettingsPin(""); setPinEntryError(false); }
@@ -927,7 +1094,7 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
   }
 
   return (
-    <div style={{ maxWidth: 440 }}>
+    <div style={{ maxWidth: 540 }}>
       {!settingsUnlocked ? (
         <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.5rem" }}>
           <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager requis</p>
@@ -966,6 +1133,52 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
               <button onClick={async () => { if (newEmp.trim()) { await addEmployee(newEmp.trim()); setNewEmp(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter</button>
             </div>
           </div>
+
+          {/* Registre du personnel */}
+          <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>📋 Registre du personnel</p>
+              <button onClick={() => setShowRegistre(v => !v)} style={{ ...btnS, padding: "4px 12px", fontSize: 12 }}>
+                {showRegistre ? "Masquer" : "Afficher"}
+              </button>
+            </div>
+            {showRegistre && (
+              <div>
+                {employees.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "#888", padding: 8 }}>Aucun employé enregistré</div>
+                ) : (
+                  <div style={{ border: "1px solid #e5e5e5", borderRadius: 8, overflow: "hidden" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "#fafafa", borderBottom: "1px solid #e5e5e5" }}>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, fontSize: 11, color: "#888" }}>#</th>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, fontSize: 11, color: "#888" }}>Nom / Prénom</th>
+                          <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: 500, fontSize: 11, color: "#888" }}>Heures contrat</th>
+                          <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: 500, fontSize: 11, color: "#888" }}>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {employees.map((emp, i) => (
+                          <tr key={emp.id} style={{ borderBottom: i < employees.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+                            <td style={{ padding: "8px 10px", color: "#888", fontSize: 12 }}>{i + 1}</td>
+                            <td style={{ padding: "8px 10px", fontWeight: 500 }}>{emp.name}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "center" }}>{emp.contract_hours ? `${emp.contract_hours}h/sem` : "—"}</td>
+                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                              <span style={{ background: "#dcfce7", color: "#16a34a", fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 20 }}>Actif</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div style={{ marginTop: 10, fontSize: 11, color: "#888", fontStyle: "italic" }}>
+                  📌 Ce registre est obligatoire et doit être tenu à jour (Article L1221-13 du Code du travail).
+                </div>
+              </div>
+            )}
+          </div>
+
           <button onClick={() => setSettingsUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
           {onSignOut && (
             <button onClick={onSignOut} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fee2e2", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Déconnexion</button>

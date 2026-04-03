@@ -28,6 +28,17 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
+  const fetchSlotsByWeekKey = async (wk: string): Promise<PlanningSlot[]> => {
+    if (!userId) return [];
+    const { data, error } = await supabase
+      .from("planning_slots")
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role")
+      .eq("user_id", userId)
+      .eq("week_key", wk);
+    if (!error && data) return data;
+    return [];
+  };
+
   const addSlot = async (employeeId: string, dayIndex: number, startTime: string, endTime: string, role?: string) => {
     if (!userId) return;
     const { data, error } = await supabase
@@ -63,5 +74,5 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
     if (!error) setSlots(prev => prev.filter(s => s.id !== id));
   };
 
-  return { slots, loading, addSlot, addSlots, deleteSlot };
+  return { slots, loading, addSlot, addSlots, deleteSlot, fetchSlotsByWeekKey };
 }
