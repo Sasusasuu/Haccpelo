@@ -175,6 +175,42 @@ function DLCListView({ filtered, produits, nbAlerte, filtre, setFiltre, search, 
 }
 
 function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+
+  const handleSuggestDLC = async () => {
+    if (!form.nom) return;
+    setAiLoading(true);
+    setAiSuggestion(null);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest-dlc`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ nom: form.nom, categorie: form.categorie, fab: form.fab }),
+      });
+      if (!res.ok) throw new Error("Erreur IA");
+      const data = await res.json();
+      if (data.dlc) {
+        setAiSuggestion(data);
+      }
+    } catch (e) {
+      console.error("AI suggestion error:", e);
+      setAiSuggestion({ error: true });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applySuggestion = () => {
+    if (aiSuggestion?.dlc) {
+      setForm({ ...form, dlc: aiSuggestion.dlc });
+      setAiSuggestion(null);
+    }
+  };
+
   return (
     <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
       <div style={{ fontSize: 16, fontWeight: 600, marginBottom: "1.25rem" }}>{editId !== null ? "Modifier le produit" : "Nouveau produit"}</div>
@@ -202,6 +238,49 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
           <input type="date" style={inp} value={form.dlc} onChange={e => setForm({ ...form, dlc: e.target.value })} />
         </div>
       </div>
+
+      {/* AI DLC Suggestion */}
+      <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: aiSuggestion ? 8 : 0 }}>
+          <span style={{ fontSize: 16 }}>🤖</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#1e40af" }}>Assistant IA — Suggestion DLC</span>
+          <button
+            onClick={handleSuggestDLC}
+            disabled={!form.nom || aiLoading}
+            style={{
+              ...btnS,
+              padding: "4px 12px",
+              fontSize: 12,
+              marginLeft: "auto",
+              background: form.nom && !aiLoading ? "#1d4ed8" : "#94a3b8",
+              color: "white",
+              border: "none",
+              opacity: !form.nom || aiLoading ? 0.6 : 1,
+            }}
+          >
+            {aiLoading ? "Analyse..." : "Suggérer DLC"}
+          </button>
+        </div>
+        {aiSuggestion && !aiSuggestion.error && (
+          <div style={{ background: "white", borderRadius: 6, padding: "10px", border: "1px solid #e0e7ff" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>DLC suggérée : {fmtDate(aiSuggestion.dlc)}</span>
+              <button onClick={applySuggestion} style={{ ...btnP, padding: "4px 12px", fontSize: 12, background: "#16a34a" }}>Appliquer</button>
+            </div>
+            <div style={{ fontSize: 12, color: "#555" }}>
+              {aiSuggestion.duree_jours && <span style={{ marginRight: 8 }}>📅 {aiSuggestion.duree_jours} jours</span>}
+              {aiSuggestion.explication}
+            </div>
+          </div>
+        )}
+        {aiSuggestion?.error && (
+          <div style={{ fontSize: 12, color: "#dc2626", marginTop: 4 }}>Impossible d'obtenir une suggestion. Réessayez.</div>
+        )}
+        {!aiSuggestion && !aiLoading && (
+          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>Entrez un nom de produit puis cliquez "Suggérer DLC" pour une recommandation HACCP.</div>
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: "1rem" }}>
         <button style={btnS} onClick={onCancel}>Annuler</button>
         <button style={btnP} onClick={onSubmit} disabled={!form.nom || !form.dlc}>{editId !== null ? "Enregistrer" : "Ajouter"}</button>
