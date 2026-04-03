@@ -17,7 +17,7 @@ const Index = () => {
     return <LoginPage />;
   }
 
-  return <AppBureau onSignOut={signOut} />;
+  return <AppBureau onSignOut={signOut} userId={session.user.id} />;
 };
 
 export default Index;
