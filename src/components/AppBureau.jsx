@@ -232,10 +232,6 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
           <input type="date" style={inp} value={form.fab} onChange={e => setForm({ ...form, fab: e.target.value })} />
         </div>
         <div>
-          <label style={lbl}>Quantité</label>
-          <input style={inp} type="number" value={form.quantite} onChange={e => setForm({ ...form, quantite: e.target.value })} placeholder="0" />
-        </div>
-        <div>
           <label style={lbl}>Date DLC *</label>
           <input type="date" style={inp} value={form.dlc} onChange={e => setForm({ ...form, dlc: e.target.value })} />
         </div>
