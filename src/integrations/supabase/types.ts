@@ -14,7 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      employees: {
+        Row: {
+          contract_hours: number | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_hours?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_hours?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      planning_slots: {
+        Row: {
+          created_at: string
+          day_index: number
+          employee_id: string
+          end_time: string
+          id: string
+          start_time: string
+          user_id: string
+          week_key: string
+        }
+        Insert: {
+          created_at?: string
+          day_index: number
+          employee_id: string
+          end_time: string
+          id?: string
+          start_time: string
+          user_id: string
+          week_key: string
+        }
+        Update: {
+          created_at?: string
+          day_index?: number
+          employee_id?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          user_id?: string
+          week_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_slots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          categorie: string
+          created_at: string
+          dlc: string
+          fab: string | null
+          id: string
+          nom: string
+          quantite: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categorie?: string
+          created_at?: string
+          dlc: string
+          fab?: string | null
+          id?: string
+          nom: string
+          quantite?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categorie?: string
+          created_at?: string
+          dlc?: string
+          fab?: string | null
+          id?: string
+          nom?: string
+          quantite?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string
+          id: string
+          manager_pin_hash: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manager_pin_hash?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manager_pin_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          arrival_ts: number | null
+          created_at: string
+          departure_ts: number | null
+          employee_id: string
+          id: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          arrival_ts?: number | null
+          created_at?: string
+          departure_ts?: number | null
+          employee_id: string
+          id?: string
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          arrival_ts?: number | null
+          created_at?: string
+          departure_ts?: number | null
+          employee_id?: string
+          id?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
