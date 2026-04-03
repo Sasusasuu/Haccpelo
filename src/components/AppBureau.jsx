@@ -745,8 +745,11 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
         {calOpen && <CalendarPopup calMonth={calMonth} setCalMonth={setCalMonth} weekOffset={weekOffset} setWeekOffset={setWeekOffset} setCalOpen={setCalOpen} />}
       </div>
 
-      {/* Copy button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      {/* Actions bar */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+        <button onClick={() => exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes)} style={{ ...btnS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+          📄 Export PDF
+        </button>
         <button onClick={copyPreviousWeek} disabled={copying} style={{ ...btnS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 4, opacity: copying ? 0.5 : 1 }}>
           📋 {copying ? "Copie..." : "Reproduire semaine précédente"}
         </button>
