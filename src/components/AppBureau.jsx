@@ -336,7 +336,7 @@ function EquipeModule({ onSignOut }) {
       </div>
       {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} setSlots={setSlots} employees={employees} contractHours={contractHours} />}
       {planTab === "pointeuse" && <PointeuseTab employees={employees} pointages={pointages} setPointages={setPointages} verifyPin={verifyPin} />}
-      {planTab === "parametres" && <ParametresTab employees={employees} setEmployees={setEmployees} contractHours={contractHours} setContractHours={setContractHours} verifyPin={verifyPin} changePin={changePin} />}
+      {planTab === "parametres" && <ParametresTab employees={employees} setEmployees={setEmployees} contractHours={contractHours} setContractHours={setContractHours} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
     </div>
   );
 }
