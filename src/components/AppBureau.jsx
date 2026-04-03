@@ -5,6 +5,7 @@ import { usePlanningSlots } from "@/hooks/usePlanningSlots";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useSettings } from "@/hooks/useSettings";
 import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
+import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 
 // ─── CONSTANTS ───
 const CATEGORIES = ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"];
@@ -977,14 +978,37 @@ function TemperaturesModule({ userId }) {
   // Get dates that have logs for navigation
   const uniqueDates = useMemo(() => [...new Set(logs.map(l => l.log_date))].sort().reverse(), [logs]);
 
+  const [showNormes, setShowNormes] = useState(false);
+
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>🌡️ Relevés de températures</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <input type="date" style={{ ...inp, width: "auto" }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>🌡️ Relevés de températures</span>
+          <button onClick={() => setShowNormes(v => !v)} style={{ ...btnS, padding: "4px 10px", fontSize: 11, background: showNormes ? "#EFF6FF" : "white", color: showNormes ? "#1D4ED8" : "#555", border: showNormes ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0" }}>
+            📏 Normes
+          </button>
         </div>
+        <input type="date" style={{ ...inp, width: "auto" }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
       </div>
+
+      {showNormes && (
+        <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: 13, color: "#1e3a5f", lineHeight: 1.7 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>📏 Normes réglementaires de températures (HACCP)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 20px" }}>
+            <div><strong>🧊 Réfrigérateurs :</strong></div><div>0°C à +3°C (idéal) — max +5°C</div>
+            <div><strong>❄️ Congélateurs :</strong></div><div>-18°C ou moins</div>
+            <div><strong>🥩 Viandes fraîches :</strong></div><div>+2°C à +4°C</div>
+            <div><strong>🐟 Poissons frais :</strong></div><div>0°C à +2°C</div>
+            <div><strong>🥛 Produits laitiers :</strong></div><div>+2°C à +6°C</div>
+            <div><strong>🥗 Préparations froides :</strong></div><div>+3°C max</div>
+            <div><strong>🍳 Plats chauds (maintien) :</strong></div><div>+63°C minimum</div>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
+            ⚠️ Tout dépassement doit être signalé et corrigé immédiatement. Les relevés doivent être effectués 2 fois/jour (matin et soir).
+          </div>
+        </div>
+      )}
 
       <div style={{ border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
@@ -1079,7 +1103,158 @@ function TemperaturesModule({ userId }) {
   );
 }
 
-// ══ MODULE HACCP (regroupe DLC + Températures) ══
+// ══ MODULE PLAN DE NETTOYAGE ══
+const DEFAULT_ZONES = [
+  { zone: "Cuisine", tasks: ["Nettoyer les plans de travail", "Dégraisser la hotte", "Nettoyer les sols"] },
+  { zone: "Chambre froide", tasks: ["Nettoyer les étagères", "Vérifier les joints de porte", "Dégivrer si nécessaire"] },
+  { zone: "Plonge", tasks: ["Nettoyer le bac de plonge", "Détartrer le lave-vaisselle"] },
+  { zone: "Salle", tasks: ["Nettoyer les tables", "Aspirer/laver les sols"] },
+];
+const FREQUENCIES = [
+  { value: "quotidien", label: "Quotidien", emoji: "🔄" },
+  { value: "hebdomadaire", label: "Hebdo", emoji: "📅" },
+  { value: "mensuel", label: "Mensuel", emoji: "🗓" },
+];
+
+function NettoyageModule({ userId }) {
+  const { tasks, logs, addTask, deleteTask, logDone, deleteLog } = useCleaningPlan(userId);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newTask, setNewTask] = useState({ zone: "", task_name: "", frequency: "quotidien" });
+  const [doneBy, setDoneBy] = useState("");
+  const [filterFreq, setFilterFreq] = useState("tous");
+
+  const today = todayStr();
+
+  const isTaskDoneToday = (taskId) => logs.some(l => l.task_id === taskId && l.done_date === today);
+  const lastDone = (taskId) => logs.find(l => l.task_id === taskId);
+
+  const zones = useMemo(() => {
+    const z = {};
+    tasks.forEach(t => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
+    return z;
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    if (filterFreq === "tous") return tasks;
+    return tasks.filter(t => t.frequency === filterFreq);
+  }, [tasks, filterFreq]);
+
+  const filteredZones = useMemo(() => {
+    const z = {};
+    filteredTasks.forEach(t => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
+    return z;
+  }, [filteredTasks]);
+
+  const handleAddTask = async () => {
+    if (!newTask.zone.trim() || !newTask.task_name.trim()) return;
+    await addTask({ zone: newTask.zone.trim(), task_name: newTask.task_name.trim(), frequency: newTask.frequency });
+    setNewTask({ zone: "", task_name: "", frequency: "quotidien" });
+  };
+
+  const handleMarkDone = async (taskId) => {
+    if (!doneBy.trim()) return;
+    await logDone(taskId, doneBy.trim());
+  };
+
+  const doneToday = tasks.filter(t => isTaskDoneToday(t.id)).length;
+  const totalFiltered = filteredTasks.length;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>
+          🧹 Plan de nettoyage
+          {tasks.length > 0 && (
+            <span style={{ background: doneToday === tasks.length ? "#dcfce7" : "#fef9c3", color: doneToday === tasks.length ? "#16a34a" : "#92400e", fontSize: 12, fontWeight: 500, padding: "2px 9px", borderRadius: 20, marginLeft: 8 }}>
+              {doneToday}/{tasks.length} aujourd'hui
+            </span>
+          )}
+        </div>
+        <button style={btnP} onClick={() => setShowAdd(v => !v)}>+ Ajouter tâche</button>
+      </div>
+
+      {/* Filtre fréquence */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+        {[["tous", "Tous"], ...FREQUENCIES.map(f => [f.value, `${f.emoji} ${f.label}`])].map(([v, l]) => (
+          <button key={v} onClick={() => setFilterFreq(v)} style={{ ...btnS, padding: "5px 12px", fontSize: 12, fontWeight: filterFreq === v ? 500 : 400, background: filterFreq === v ? "#f0f0f0" : "transparent" }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Champ "Fait par" */}
+      <div style={{ marginBottom: 12 }}>
+        <input value={doneBy} onChange={e => setDoneBy(e.target.value)} placeholder="Votre prénom (pour valider)" style={{ ...inp, maxWidth: 240 }} />
+      </div>
+
+      {/* Add form */}
+      {showAdd && (
+        <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1rem", marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Nouvelle tâche de nettoyage</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={lbl}>Zone</label>
+              <input list="zones-list" value={newTask.zone} onChange={e => setNewTask(p => ({ ...p, zone: e.target.value }))} placeholder="Ex: Cuisine" style={inp} />
+              <datalist id="zones-list">
+                {[...new Set([...Object.keys(zones), ...DEFAULT_ZONES.map(z => z.zone)])].map(z => <option key={z} value={z} />)}
+              </datalist>
+            </div>
+            <div>
+              <label style={lbl}>Tâche</label>
+              <input value={newTask.task_name} onChange={e => setNewTask(p => ({ ...p, task_name: e.target.value }))} placeholder="Ex: Nettoyer les sols" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>Fréquence</label>
+              <select value={newTask.frequency} onChange={e => setNewTask(p => ({ ...p, frequency: e.target.value }))} style={inp}>
+                {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button style={btnS} onClick={() => setShowAdd(false)}>Annuler</button>
+            <button style={btnP} onClick={handleAddTask} disabled={!newTask.zone.trim() || !newTask.task_name.trim()}>Ajouter</button>
+          </div>
+        </div>
+      )}
+
+      {/* Tasks by zone */}
+      {Object.keys(filteredZones).length === 0 ? (
+        <div style={{ textAlign: "center", padding: "3rem 0", color: "#888", fontSize: 14 }}>
+          Aucune tâche de nettoyage — cliquez sur "+ Ajouter tâche"
+        </div>
+      ) : (
+        Object.entries(filteredZones).map(([zone, zoneTasks]) => (
+          <div key={zone} style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 6, padding: "4px 0", borderBottom: "1px solid #e5e5e5" }}>{zone}</div>
+            {zoneTasks.map(task => {
+              const done = isTaskDoneToday(task.id);
+              const last = lastDone(task.id);
+              const freq = FREQUENCIES.find(f => f.value === task.frequency);
+              return (
+                <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: done ? "#f0fdf4" : "#fafafa", marginBottom: 4 }}>
+                  <button
+                    onClick={() => !done && handleMarkDone(task.id)}
+                    disabled={done || !doneBy.trim()}
+                    style={{ width: 26, height: 26, borderRadius: 6, border: done ? "2px solid #16a34a" : "2px solid #d0d0d0", background: done ? "#16a34a" : "white", color: "white", cursor: done || !doneBy.trim() ? "default" : "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: !done && !doneBy.trim() ? 0.4 : 1 }}
+                  >{done ? "✓" : ""}</button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: done ? "#16a34a" : "#111", textDecoration: done ? "line-through" : "none" }}>{task.task_name}</div>
+                    <div style={{ fontSize: 11, color: "#999" }}>
+                      {freq?.emoji} {freq?.label}
+                      {done && last && <span style={{ marginLeft: 8, color: "#16a34a" }}>✓ {last.done_by}</span>}
+                      {!done && last && <span style={{ marginLeft: 8 }}>Dernier : {fmtDate(last.done_date)} par {last.done_by}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => deleteTask(task.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#aaa" }} title="Supprimer">✕</button>
+                </div>
+              );
+            })}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// ══ MODULE HACCP (regroupe DLC + Températures + Nettoyage) ══
 function HACCPModule({ userId }) {
   const [subTab, setSubTab] = useState("dlc");
   const subBtnStyle = (active) => ({
@@ -1091,12 +1266,14 @@ function HACCPModule({ userId }) {
   });
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: "1.25rem", flexWrap: "wrap" }}>
         <button onClick={() => setSubTab("dlc")} style={subBtnStyle(subTab === "dlc")}>🗓 Gestion DLC</button>
         <button onClick={() => setSubTab("temperatures")} style={subBtnStyle(subTab === "temperatures")}>🌡️ Températures</button>
+        <button onClick={() => setSubTab("nettoyage")} style={subBtnStyle(subTab === "nettoyage")}>🧹 Nettoyage</button>
       </div>
       {subTab === "dlc" && <DLCModule userId={userId} />}
       {subTab === "temperatures" && <TemperaturesModule userId={userId} />}
+      {subTab === "nettoyage" && <NettoyageModule userId={userId} />}
     </div>
   );
 }
