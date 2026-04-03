@@ -705,7 +705,7 @@ async function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMin
     return row;
   });
 
-  doc.autoTable({
+  autoTable(doc, {
     head,
     body,
     startY: 28,
@@ -731,7 +731,7 @@ async function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMin
   doc.setFont("helvetica", "bold");
   doc.text("Roles :", 14, finalY);
   let xPos = 32;
-  ROLES.forEach(r => {
+  roles.forEach(r => {
     const hex = r.color;
     const rgb = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
     doc.setFillColor(...rgb);
