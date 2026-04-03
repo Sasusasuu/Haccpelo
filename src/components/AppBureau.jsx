@@ -1192,7 +1192,7 @@ function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, log
                       {!done && last && <span style={{ marginLeft: 8 }}>Dernier : {fmtDate(last.done_date)} par {last.done_by}</span>}
                     </div>
                   </div>
-                  <button onClick={() => deleteTask(task.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#aaa" }} title="Supprimer">✕</button>
+                  
                 </div>
               );
             })}
