@@ -54,9 +54,10 @@ Règles :
                 properties: {
                   dlc: { type: "string", description: "DLC date in YYYY-MM-DD format" },
                   duree_jours: { type: "number", description: "Number of days between fabrication and DLC" },
+                  categorie: { type: "string", description: "Best matching category", enum: ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"] },
                   explication: { type: "string", description: "Short explanation for the suggested DLC" }
                 },
-                required: ["dlc", "duree_jours", "explication"],
+                required: ["dlc", "duree_jours", "categorie", "explication"],
                 additionalProperties: false
               }
             }
