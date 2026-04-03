@@ -1079,15 +1079,36 @@ function TemperaturesModule({ userId }) {
   );
 }
 
+// ══ MODULE HACCP (regroupe DLC + Températures) ══
+function HACCPModule({ userId }) {
+  const [subTab, setSubTab] = useState("dlc");
+  const subBtnStyle = (active) => ({
+    padding: "6px 16px", borderRadius: 8, fontSize: 13,
+    background: active ? "#EFF6FF" : "white",
+    color: active ? "#1D4ED8" : "#555",
+    border: active ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0",
+    cursor: "pointer", fontWeight: active ? 600 : 400,
+  });
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: "1.25rem" }}>
+        <button onClick={() => setSubTab("dlc")} style={subBtnStyle(subTab === "dlc")}>🗓 Gestion DLC</button>
+        <button onClick={() => setSubTab("temperatures")} style={subBtnStyle(subTab === "temperatures")}>🌡️ Températures</button>
+      </div>
+      {subTab === "dlc" && <DLCModule userId={userId} />}
+      {subTab === "temperatures" && <TemperaturesModule userId={userId} />}
+    </div>
+  );
+}
+
 // ══ ROOT APP ══
 const MAIN_TABS = [
-  { id: "dlc", label: "🗓 Gestion DLC" },
-  { id: "temperatures", label: "🌡️ Températures" },
+  { id: "haccp", label: "📋 HACCP" },
   { id: "equipe", label: "👥 Équipe" },
 ];
 
 export default function App({ onSignOut, userId }) {
-  const [mainTab, setMainTab] = useState("dlc");
+  const [mainTab, setMainTab] = useState("haccp");
   return (
     <div style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", maxWidth: 920, margin: "0 auto", padding: "1rem", background: "white", minHeight: "100vh" }}>
       <style>{`
@@ -1111,8 +1132,7 @@ export default function App({ onSignOut, userId }) {
           ))}
         </div>
       </div>
-      {mainTab === "dlc" && <DLCModule userId={userId} />}
-      {mainTab === "temperatures" && <TemperaturesModule userId={userId} />}
+      {mainTab === "haccp" && <HACCPModule userId={userId} />}
       {mainTab === "equipe" && <EquipeModule userId={userId} onSignOut={onSignOut} />}
     </div>
   );
