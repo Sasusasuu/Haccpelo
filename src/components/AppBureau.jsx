@@ -262,6 +262,27 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel, uploadPhoto }) 
         </div>
       </div>
 
+      {/* Photo traçabilité */}
+      <div style={{ marginBottom: 12 }}>
+        <label style={lbl}>📷 Photo traçabilité</label>
+        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{ display: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {form.photo_url ? (
+            <img src={form.photo_url} alt="Photo produit" style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", border: "1px solid #d0d0d0" }} />
+          ) : (
+            <div style={{ width: 64, height: 64, borderRadius: 8, background: "#f5f5f5", border: "1px dashed #ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#bbb" }}>📷</div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ ...btnS, padding: "6px 14px", fontSize: 12 }}>
+              {uploading ? "Envoi..." : form.photo_url ? "Changer la photo" : "Prendre / Choisir une photo"}
+            </button>
+            {form.photo_url && (
+              <button type="button" onClick={() => setForm({ ...form, photo_url: "" })} style={{ ...btnS, padding: "4px 10px", fontSize: 11, color: "#dc2626", borderColor: "#fca5a5" }}>Supprimer la photo</button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* AI DLC Suggestion */}
       <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: aiSuggestion ? 8 : 0 }}>
