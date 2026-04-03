@@ -187,20 +187,56 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel, uploadPhoto }) 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setScanResult(null);
     try {
       const url = await uploadPhoto(file);
-      if (url) setForm({ ...form, photo_url: url });
+      if (url) {
+        setForm(prev => ({ ...prev, photo_url: url }));
+        // Auto-scan after upload
+        setScanning(true);
+        try {
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scan-product`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ image_url: url }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.nom) setScanResult(data);
+          }
+        } catch (err) {
+          console.error("Scan error:", err);
+        } finally {
+          setScanning(false);
+        }
+      }
     } catch (err) {
       console.error("Photo upload error:", err);
     } finally {
       setUploading(false);
     }
+  };
+
+  const applyScan = () => {
+    if (!scanResult) return;
+    const updates = {};
+    if (scanResult.nom) updates.nom = scanResult.nom;
+    if (scanResult.categorie) updates.categorie = scanResult.categorie;
+    if (scanResult.fab) updates.fab = scanResult.fab;
+    if (scanResult.dlc) updates.dlc = scanResult.dlc;
+    setForm(prev => ({ ...prev, ...updates }));
+    setScanResult(null);
   };
 
   const handleSuggestDLC = async () => {
