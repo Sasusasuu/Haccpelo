@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      cleaning_logs: {
+        Row: {
+          created_at: string
+          done_by: string
+          done_date: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done_by: string
+          done_date?: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          done_by?: string
+          done_date?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaning_tasks: {
+        Row: {
+          created_at: string
+          frequency: string
+          id: string
+          task_name: string
+          updated_at: string
+          user_id: string
+          zone: string
+        }
+        Insert: {
+          created_at?: string
+          frequency?: string
+          id?: string
+          task_name: string
+          updated_at?: string
+          user_id: string
+          zone: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: string
+          id?: string
+          task_name?: string
+          updated_at?: string
+          user_id?: string
+          zone?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           contract_hours: number | null
