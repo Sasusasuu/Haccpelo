@@ -19,7 +19,7 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
     if (!userId || !weekKey) return;
     const { data, error } = await supabase
       .from("planning_slots")
-      .select("id, employee_id, week_key, day_index, start_time, end_time")
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role")
       .eq("user_id", userId)
       .eq("week_key", weekKey);
     if (!error && data) setSlots(data);
