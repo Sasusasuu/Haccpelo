@@ -84,7 +84,7 @@ export function AppSidebar({ onSignOut }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* Équipe */}
-        <SidebarGroup defaultOpen>
+        <SidebarGroup>
           <SidebarGroupLabel>Équipe</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
