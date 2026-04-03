@@ -30,9 +30,10 @@ serve(async (req) => {
 
 Règles :
 - Réponds UNIQUEMENT avec un JSON valide, rien d'autre.
-- Format : {"dlc": "YYYY-MM-DD", "duree_jours": N, "explication": "..."}
+- Format : {"dlc": "YYYY-MM-DD", "duree_jours": N, "categorie": "...", "explication": "..."}
 - La DLC doit être une date au format YYYY-MM-DD
 - duree_jours = nombre de jours entre fabrication et DLC
+- categorie = la catégorie la plus adaptée parmi : Viande, Poisson, Produits laitiers, Légumes, Fruits, Charcuterie, Épicerie, Boissons, Autre
 - explication = courte justification (1 phrase max)
 - Aujourd'hui : ${today}
 - Si pas de date de fabrication, utilise aujourd'hui comme référence.`
