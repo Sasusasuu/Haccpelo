@@ -183,9 +183,25 @@ function DLCListView({ filtered, produits, nbAlerte, filtre, setFiltre, search, 
   );
 }
 
-function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
+function DLCAddForm({ form, setForm, editId, onSubmit, onCancel, uploadPhoto }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadPhoto(file);
+      if (url) setForm({ ...form, photo_url: url });
+    } catch (err) {
+      console.error("Photo upload error:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSuggestDLC = async () => {
     if (!form.nom) return;
