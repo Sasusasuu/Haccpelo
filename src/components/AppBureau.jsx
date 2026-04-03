@@ -920,9 +920,169 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
   );
 }
 
+// ══ MODULE TEMPÉRATURES ══
+const DEFAULT_EQUIPMENTS = ["Frigo 1", "Frigo 2", "Congélateur 1", "Congélateur 2"];
+
+function TemperaturesModule({ userId }) {
+  const { logs, addLog, deleteLog } = useTemperatureLogs(userId);
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [equipments, setEquipments] = useState(DEFAULT_EQUIPMENTS);
+  const [newEquip, setNewEquip] = useState("");
+  const [temps, setTemps] = useState({});
+
+  const logsForDate = useMemo(() => logs.filter(l => l.log_date === selectedDate), [logs, selectedDate]);
+
+  const getExisting = (equip, period) => logsForDate.find(l => l.equipment_name === equip && l.period === period);
+  const getTempKey = (equip, period) => `${equip}__${period}`;
+
+  const handleSave = async (equip, period) => {
+    const key = getTempKey(equip, period);
+    const val = temps[key];
+    if (val === undefined || val === "") return;
+    const temp = parseFloat(val);
+    if (isNaN(temp)) return;
+    await addLog({ equipment_name: equip, period, temperature: temp, log_date: selectedDate });
+    setTemps(prev => { const n = { ...prev }; delete n[key]; return n; });
+  };
+
+  const addEquipment = () => {
+    const name = newEquip.trim();
+    if (name && !equipments.includes(name)) {
+      setEquipments(prev => [...prev, name]);
+      setNewEquip("");
+    }
+  };
+
+  // Collect unique equipment names from existing logs
+  useEffect(() => {
+    const fromLogs = [...new Set(logs.map(l => l.equipment_name))];
+    setEquipments(prev => {
+      const merged = [...new Set([...prev, ...fromLogs])];
+      return merged;
+    });
+  }, [logs]);
+
+  const tempColor = (temp, equip) => {
+    const isCongel = equip.toLowerCase().includes("congél") || equip.toLowerCase().includes("congel");
+    if (isCongel) {
+      if (temp > -15) return { bg: "#fee2e2", color: "#dc2626" };
+      if (temp > -18) return { bg: "#fef9c3", color: "#92400e" };
+      return { bg: "#dcfce7", color: "#16a34a" };
+    }
+    if (temp > 5) return { bg: "#fee2e2", color: "#dc2626" };
+    if (temp > 3) return { bg: "#fef9c3", color: "#92400e" };
+    return { bg: "#dcfce7", color: "#16a34a" };
+  };
+
+  // Get dates that have logs for navigation
+  const uniqueDates = useMemo(() => [...new Set(logs.map(l => l.log_date))].sort().reverse(), [logs]);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>🌡️ Relevés de températures</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="date" style={{ ...inp, width: "auto" }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: "#fafafa", borderBottom: "1px solid #e5e5e5" }}>
+              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#888" }}>Équipement</th>
+              <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 500, fontSize: 12, color: "#888" }}>☀️ Matin</th>
+              <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 500, fontSize: 12, color: "#888" }}>🌙 Soir</th>
+            </tr>
+          </thead>
+          <tbody>
+            {equipments.map((equip, i) => (
+              <tr key={equip} style={{ borderBottom: i < equipments.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 500 }}>
+                  {equip.toLowerCase().includes("congél") || equip.toLowerCase().includes("congel") ? "❄️" : "🧊"} {equip}
+                </td>
+                {["matin", "soir"].map(period => {
+                  const existing = getExisting(equip, period);
+                  const key = getTempKey(equip, period);
+                  return (
+                    <td key={period} style={{ padding: "8px 12px", textAlign: "center" }}>
+                      {existing ? (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          <span style={{
+                            ...tempColor(existing.temperature, equip),
+                            padding: "3px 10px",
+                            borderRadius: 20,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            fontFamily: "monospace",
+                          }}>
+                            {existing.temperature > 0 ? "+" : ""}{existing.temperature}°C
+                          </span>
+                          <button onClick={() => deleteLog(existing.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#aaa" }} title="Supprimer">✕</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={temps[key] ?? ""}
+                            onChange={e => setTemps(prev => ({ ...prev, [key]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter") handleSave(equip, period); }}
+                            placeholder="°C"
+                            style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #d0d0d0", textAlign: "center", fontSize: 14, background: "white", color: "#111" }}
+                          />
+                          <button
+                            onClick={() => handleSave(equip, period)}
+                            disabled={!temps[key] && temps[key] !== 0}
+                            style={{ ...btnP, padding: "6px 10px", fontSize: 11, opacity: temps[key] !== undefined && temps[key] !== "" ? 1 : 0.4 }}
+                          >✓</button>
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Add equipment */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <input
+          value={newEquip}
+          onChange={e => setNewEquip(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") addEquipment(); }}
+          placeholder="Ajouter un équipement (ex: Frigo 3)"
+          style={{ ...inp, maxWidth: 280 }}
+        />
+        <button onClick={addEquipment} disabled={!newEquip.trim()} style={{ ...btnS, fontSize: 13, opacity: newEquip.trim() ? 1 : 0.5 }}>+ Ajouter</button>
+      </div>
+
+      {/* Historique */}
+      {uniqueDates.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "#888", marginBottom: 8 }}>Historique récent</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {uniqueDates.slice(0, 14).map(d => (
+              <button key={d} onClick={() => setSelectedDate(d)} style={{
+                ...btnS, padding: "4px 10px", fontSize: 12,
+                background: d === selectedDate ? "#111" : "white",
+                color: d === selectedDate ? "white" : "#555",
+                border: d === selectedDate ? "1.5px solid #111" : "1px solid #d0d0d0",
+              }}>{fmtDate(d)}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ══ ROOT APP ══
 const MAIN_TABS = [
   { id: "dlc", label: "🗓 Gestion DLC" },
+  { id: "temperatures", label: "🌡️ Températures" },
   { id: "equipe", label: "👥 Équipe" },
 ];
 
@@ -943,7 +1103,7 @@ export default function App({ onSignOut, userId }) {
           <div style={{ fontSize: 19, fontWeight: 700, color: "#111" }}>Holding NHA</div>
           <div style={{ fontSize: 12, color: "#888" }}>Outil interne équipe</div>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {MAIN_TABS.map(t => (
             <button key={t.id} onClick={() => setMainTab(t.id)} style={{ padding: "7px 18px", borderRadius: 8, fontSize: 14, fontWeight: mainTab === t.id ? 600 : 400, background: mainTab === t.id ? "#111" : "white", color: mainTab === t.id ? "white" : "#555", border: mainTab === t.id ? "1.5px solid #111" : "1px solid #d0d0d0", cursor: "pointer" }}>
               {t.label}
@@ -952,6 +1112,7 @@ export default function App({ onSignOut, userId }) {
         </div>
       </div>
       {mainTab === "dlc" && <DLCModule userId={userId} />}
+      {mainTab === "temperatures" && <TemperaturesModule userId={userId} />}
       {mainTab === "equipe" && <EquipeModule userId={userId} onSignOut={onSignOut} />}
     </div>
   );
