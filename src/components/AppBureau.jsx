@@ -755,7 +755,7 @@ const MAIN_TABS = [
   { id: "equipe", label: "👥 Équipe" },
 ];
 
-export default function App() {
+export default function App({ onSignOut }) {
   const [mainTab, setMainTab] = useState("dlc");
   return (
     <div style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", maxWidth: 920, margin: "0 auto", padding: "1rem", background: "white", minHeight: "100vh" }}>
