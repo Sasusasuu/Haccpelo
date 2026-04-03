@@ -781,7 +781,7 @@ export default function App({ onSignOut }) {
         </div>
       </div>
       {mainTab === "dlc" && <DLCModule />}
-      {mainTab === "equipe" && <EquipeModule />}
+      {mainTab === "equipe" && <EquipeModule onSignOut={onSignOut} />}
     </div>
   );
 }
