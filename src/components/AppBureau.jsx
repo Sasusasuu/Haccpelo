@@ -750,7 +750,7 @@ function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes) 
   });
 }
 
-
+function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees, fetchSlotsByWeekKey }) {
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
