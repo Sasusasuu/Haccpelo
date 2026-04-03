@@ -206,7 +206,9 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
 
   const applySuggestion = () => {
     if (aiSuggestion?.dlc) {
-      setForm({ ...form, dlc: aiSuggestion.dlc });
+      const updates = { dlc: aiSuggestion.dlc };
+      if (aiSuggestion.categorie) updates.categorie = aiSuggestion.categorie;
+      setForm({ ...form, ...updates });
       setAiSuggestion(null);
     }
   };
@@ -228,10 +230,6 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
         <div>
           <label style={lbl}>Date de fabrication</label>
           <input type="date" style={inp} value={form.fab} onChange={e => setForm({ ...form, fab: e.target.value })} />
-        </div>
-        <div>
-          <label style={lbl}>Quantité</label>
-          <input style={inp} type="number" value={form.quantite} onChange={e => setForm({ ...form, quantite: e.target.value })} placeholder="0" />
         </div>
         <div>
           <label style={lbl}>Date DLC *</label>
@@ -267,6 +265,9 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
               <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>DLC suggérée : {fmtDate(aiSuggestion.dlc)}</span>
               <button onClick={applySuggestion} style={{ ...btnP, padding: "4px 12px", fontSize: 12, background: "#16a34a" }}>Appliquer</button>
             </div>
+            {aiSuggestion.categorie && (
+              <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 4 }}>🏷️ Catégorie suggérée : <strong>{aiSuggestion.categorie}</strong></div>
+            )}
             <div style={{ fontSize: 12, color: "#555" }}>
               {aiSuggestion.duree_jours && <span style={{ marginRight: 8 }}>📅 {aiSuggestion.duree_jours} jours</span>}
               {aiSuggestion.explication}

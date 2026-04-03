@@ -30,9 +30,10 @@ serve(async (req) => {
 
 Règles :
 - Réponds UNIQUEMENT avec un JSON valide, rien d'autre.
-- Format : {"dlc": "YYYY-MM-DD", "duree_jours": N, "explication": "..."}
+- Format : {"dlc": "YYYY-MM-DD", "duree_jours": N, "categorie": "...", "explication": "..."}
 - La DLC doit être une date au format YYYY-MM-DD
 - duree_jours = nombre de jours entre fabrication et DLC
+- categorie = la catégorie la plus adaptée parmi : Viande, Poisson, Produits laitiers, Légumes, Fruits, Charcuterie, Épicerie, Boissons, Autre
 - explication = courte justification (1 phrase max)
 - Aujourd'hui : ${today}
 - Si pas de date de fabrication, utilise aujourd'hui comme référence.`
@@ -53,9 +54,10 @@ Règles :
                 properties: {
                   dlc: { type: "string", description: "DLC date in YYYY-MM-DD format" },
                   duree_jours: { type: "number", description: "Number of days between fabrication and DLC" },
+                  categorie: { type: "string", description: "Best matching category", enum: ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"] },
                   explication: { type: "string", description: "Short explanation for the suggested DLC" }
                 },
-                required: ["dlc", "duree_jours", "explication"],
+                required: ["dlc", "duree_jours", "categorie", "explication"],
                 additionalProperties: false
               }
             }
