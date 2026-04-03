@@ -875,7 +875,7 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
         </table>
       </div>
 
-      {modal && <SlotModal modal={modal} dates={dates} slotForm={slotForm} setSlotForm={setSlotForm} onConfirm={addSlot} onCancel={() => setModal(null)} />}
+      {modal && <SlotModal modal={modal} dates={dates} slotForm={slotForm} setSlotForm={setSlotForm} onConfirm={addSlot} onCancel={() => setModal(null)} roles={roles} />}
     </div>
   );
 }
