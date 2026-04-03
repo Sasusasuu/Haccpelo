@@ -666,8 +666,10 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel, r
 }
 
 async function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes, roles) {
-  const { default: jsPDF } = await import("jspdf");
-  await import("jspdf-autotable");
+  const jsPDFModule = await import("jspdf");
+  const jsPDF = jsPDFModule.default;
+  const autoTableModule = await import("jspdf-autotable");
+  const autoTable = autoTableModule.default;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
   // Title
