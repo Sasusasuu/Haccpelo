@@ -1150,7 +1150,6 @@ function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, log
             </span>
           )}
         </div>
-        <button style={btnP} onClick={() => setShowAdd(v => !v)}>+ Ajouter tâche</button>
       </div>
 
       {/* Filtre fréquence */}
@@ -1164,36 +1163,6 @@ function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, log
       <div style={{ marginBottom: 12 }}>
         <input value={doneBy} onChange={e => setDoneBy(e.target.value)} placeholder="Votre prénom (pour valider)" style={{ ...inp, maxWidth: 240 }} />
       </div>
-
-      {/* Add form */}
-      {showAdd && (
-        <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1rem", marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Nouvelle tâche de nettoyage</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={lbl}>Zone</label>
-              <input list="zones-list" value={newTask.zone} onChange={e => setNewTask(p => ({ ...p, zone: e.target.value }))} placeholder="Ex: Cuisine" style={inp} />
-              <datalist id="zones-list">
-                {[...new Set([...Object.keys(zones), ...DEFAULT_ZONES.map(z => z.zone)])].map(z => <option key={z} value={z} />)}
-              </datalist>
-            </div>
-            <div>
-              <label style={lbl}>Tâche</label>
-              <input value={newTask.task_name} onChange={e => setNewTask(p => ({ ...p, task_name: e.target.value }))} placeholder="Ex: Nettoyer les sols" style={inp} />
-            </div>
-            <div>
-              <label style={lbl}>Fréquence</label>
-              <select value={newTask.frequency} onChange={e => setNewTask(p => ({ ...p, frequency: e.target.value }))} style={inp}>
-                {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button style={btnS} onClick={() => setShowAdd(false)}>Annuler</button>
-            <button style={btnP} onClick={handleAddTask} disabled={!newTask.zone.trim() || !newTask.task_name.trim()}>Ajouter</button>
-          </div>
-        </div>
-      )}
 
       {/* Tasks by zone */}
       {Object.keys(filteredZones).length === 0 ? (
