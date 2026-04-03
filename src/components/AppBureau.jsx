@@ -699,9 +699,9 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
   async function addSlot() {
     if (!modal) return;
     const { empId, dayIdx } = modal;
-    const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end }];
+    const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined }];
     (slotForm.copyDays || []).forEach(di => {
-      entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end });
+      entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined });
     });
     await addSlots(entries);
     setModal(null);
