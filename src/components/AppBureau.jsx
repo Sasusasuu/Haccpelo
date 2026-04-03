@@ -1,36 +1,25 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useProducts } from "@/hooks/useProducts";
+import { useEmployees } from "@/hooks/useEmployees";
+import { usePlanningSlots } from "@/hooks/usePlanningSlots";
+import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { useSettings } from "@/hooks/useSettings";
 
-// ─── DLC CONSTANTS ───
-const STORAGE_KEY = "dlc_produits_terrasse";
+// ─── CONSTANTS ───
 const CATEGORIES = ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"];
 const todayStr = () => new Date().toISOString().split("T")[0];
 const tomorrowStr = () => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split("T")[0]; };
 const statusOf = (dlc) => { if (!dlc) return "ok"; if (dlc <= todayStr()) return "expire"; if (dlc <= tomorrowStr()) return "urgent"; return "ok"; };
 const fmtDate = (d) => { if (!d) return "—"; const [y,m,j] = d.split("-"); return `${j}/${m}/${y}`; };
-// FIX #1 : fonction pour que les dates soient toujours fraîches
 const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "" });
 
-// ─── PLANNING CONSTANTS ───
-const EMPLOYEES_DEFAULT = ["Alice","Bruno","Clara","David","Emma"];
 const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
-const MANAGER_PIN_DEFAULT = "1234";
 const SLOT_COLORS = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#BA7517"];
 
-// FIX #8 : ID unique — Date.now()+di pouvait collisionner
-const genId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-
-// FIX #7 : sécuriser les clés contre les noms contenant "|"
-const safeKey = (s) => String(s).replace(/\|/g, "_");
-
-// FIX #2 : weekKey inclut l'année → pas de collision entre 2026 et 2027
-const makeWeekKey = (dates) => `${fmtShort(dates[0])}-${dates[0].getFullYear()}`;
-
-// FIX #3 : hash djb2 — PIN stocké haché, pas en clair
-function hashPin(pin) {
-  let h = 5381;
-  for (let i = 0; i < pin.length; i++) h = (h * 33) ^ pin.charCodeAt(i);
-  return (h >>> 0).toString(16);
-}
+const fmtShort = (d) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+const fmtTime = (ts) => { if (!ts) return "--:--"; return new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); };
+const diffH = (a, b) => { if (!a || !b) return 0; return (b - a) / 3600000; };
+const fmtDuration = (hours) => { const t = Math.floor(hours * 60); const h = Math.floor(t / 60); const m = t % 60; if (h === 0) return `${m}min`; return m === 0 ? `${h}h` : `${h}h ${m}min`; };
 
 function getWeekDates(offset = 0) {
   const now = new Date();
@@ -41,14 +30,7 @@ function getWeekDates(offset = 0) {
   return Array.from({ length: 7 }, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
 }
 
-const fmtShort = (d) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-const fmtTime = (ts) => { if (!ts) return "--:--"; return new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); };
-const diffH = (a, b) => { if (!a || !b) return 0; return (b - a) / 3600000; };
-const fmtDuration = (hours) => { const t = Math.floor(hours * 60); const h = Math.floor(t / 60); const m = t % 60; if (h === 0) return `${m}min`; return m === 0 ? `${h}h` : `${h}h ${m}min`; };
-
-function load(key, def) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
-}
+const makeWeekKey = (dates) => `${fmtShort(dates[0])}-${dates[0].getFullYear()}`;
 
 // ─── SHARED STYLES ───
 const inp = { width: "100%", padding: "8px 10px", border: "1px solid #d0d0d0", borderRadius: 8, background: "white", color: "#111", fontSize: 14, boxSizing: "border-box" };
@@ -57,8 +39,8 @@ const btnP = { background: "#111", color: "white", border: "none", borderRadius:
 const btnS = { background: "transparent", color: "#111", border: "1px solid #d0d0d0", borderRadius: 8, padding: "8px 18px", fontSize: 14, cursor: "pointer" };
 
 // ══ MODULE DLC ══
-function DLCModule() {
-  const [produits, setProduits] = useState([]);
+function DLCModule({ userId }) {
+  const { produits, addProduct, updateProduct, deleteProduct } = useProducts(userId);
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState(null);
   const [view, setView] = useState("liste");
@@ -67,30 +49,14 @@ function DLCModule() {
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  useEffect(() => {
-    try {
-      const s = window.storage;
-      if (s) s.get(STORAGE_KEY).then(r => { if (r?.value) setProduits(JSON.parse(r.value)); }).catch(e => console.error("storage.get failed:", e));
-    } catch (e) { console.error("storage unavailable:", e); }
-  }, []);
-
-  const saveProduits = (list) => {
-    setProduits(list);
-    try {
-      if (window.storage) window.storage.set(STORAGE_KEY, JSON.stringify(list)).catch(e => console.error("storage.set failed:", e));
-    } catch (e) { console.error("storage unavailable:", e); }
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
-    let list;
     if (editId !== null) {
-      list = produits.map(p => p.id === editId ? { ...form, id: editId } : p);
+      await updateProduct(editId, form);
       setEditId(null);
     } else {
-      list = [...produits, { ...form, id: genId() }];
+      await addProduct(form);
     }
-    saveProduits(list);
     setForm(makeDefaultForm());
     setView("liste");
   };
@@ -145,7 +111,7 @@ function DLCModule() {
       {confirmDelete && (
         <ConfirmDeleteModal
           product={confirmDelete}
-          onConfirm={() => { saveProduits(produits.filter(p => p.id !== confirmDelete.id)); setConfirmDelete(null); }}
+          onConfirm={async () => { await deleteProduct(confirmDelete.id); setConfirmDelete(null); }}
           onCancel={() => setConfirmDelete(null)}
         />
       )}
@@ -295,36 +261,17 @@ function ConfirmDeleteModal({ product, onConfirm, onCancel }) {
 }
 
 // ══ MODULE ÉQUIPE ══
-function EquipeModule({ onSignOut }) {
+function EquipeModule({ userId, onSignOut }) {
   const [planTab, setPlanTab] = useState("planning");
   const [weekOffset, setWeekOffset] = useState(0);
-  const [slots, setSlots] = useState(() => load("slots", {}));
-  const [pointages, setPointages] = useState(() => load("pointages", {}));
-  const [employees, setEmployees] = useState(() => load("employees", EMPLOYEES_DEFAULT));
-  const [managerPinHash, setManagerPinHash] = useState(() => {
-    // Migration depuis l'ancienne clé plaintext si elle existe
-    const legacy = load("managerPin", null);
-    if (legacy) {
-      const h = hashPin(legacy);
-      localStorage.removeItem("managerPin");
-      localStorage.setItem("managerPinHash", JSON.stringify(h));
-      return h;
-    }
-    return load("managerPinHash", hashPin(MANAGER_PIN_DEFAULT));
-  });
-  const [contractHours, setContractHours] = useState(() => load("contractHours", {}));
-
   const dates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekKey = useMemo(() => makeWeekKey(dates), [dates]);
 
-  useEffect(() => { localStorage.setItem("slots", JSON.stringify(slots)); }, [slots]);
-  useEffect(() => { localStorage.setItem("pointages", JSON.stringify(pointages)); }, [pointages]);
-  useEffect(() => { localStorage.setItem("employees", JSON.stringify(employees)); }, [employees]);
-  useEffect(() => { localStorage.setItem("managerPinHash", JSON.stringify(managerPinHash)); }, [managerPinHash]);
-  useEffect(() => { localStorage.setItem("contractHours", JSON.stringify(contractHours)); }, [contractHours]);
+  const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
+  const { slots, addSlots, deleteSlot } = usePlanningSlots(userId, weekKey);
+  const { entries, clockIn, clockOut } = useTimeEntries(userId);
+  const { verifyPin, changePin } = useSettings(userId);
 
-  const verifyPin = (pin) => hashPin(pin) === managerPinHash;
-  const changePin = (newPin) => setManagerPinHash(hashPin(newPin));
   const planBtnStyle = (active) => ({ padding: "6px 16px", borderRadius: 8, fontSize: 14, background: active ? "#EFF6FF" : "white", color: active ? "#1D4ED8" : "#555", border: active ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0", cursor: "pointer", fontWeight: active ? 600 : 400 });
 
   return (
@@ -334,9 +281,9 @@ function EquipeModule({ onSignOut }) {
           <button key={t} onClick={() => setPlanTab(t)} style={planBtnStyle(planTab === t)}>{l}</button>
         ))}
       </div>
-      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} setSlots={setSlots} employees={employees} contractHours={contractHours} />}
-      {planTab === "pointeuse" && <PointeuseTab employees={employees} pointages={pointages} setPointages={setPointages} verifyPin={verifyPin} />}
-      {planTab === "parametres" && <ParametresTab employees={employees} setEmployees={setEmployees} contractHours={contractHours} setContractHours={setContractHours} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
+      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} />}
+      {planTab === "pointeuse" && <PointeuseTab employees={employees} entries={entries} clockIn={clockIn} clockOut={clockOut} verifyPin={verifyPin} />}
+      {planTab === "parametres" && <ParametresTab employees={employees} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
     </div>
   );
 }
@@ -412,7 +359,7 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
       <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e5e5", padding: "2rem", width: 360, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
         <h3 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700, color: "#111" }}>Ajouter un créneau</h3>
-        <p style={{ margin: "0 0 24px", fontSize: 13, color: "#888" }}>{modal.emp} · {DAYS[modal.dayIdx]} {fmtShort(dates[modal.dayIdx])}</p>
+        <p style={{ margin: "0 0 24px", fontSize: 13, color: "#888" }}>{modal.empName} · {DAYS[modal.dayIdx]} {fmtShort(dates[modal.dayIdx])}</p>
         <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
           {[["start","🕐 Début"],["end","🕐 Fin"]].map(([k, l]) => (
             <div key={k} style={{ flex: 1 }}>
@@ -453,7 +400,7 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
   );
 }
 
-function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, setSlots, employees, contractHours }) {
+function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees }) {
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
@@ -471,25 +418,21 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, setSlot
     const result = {};
     employees.forEach(emp => {
       let total = 0;
-      dates.forEach((_, i) => {
-        (slots[`${weekKey}|${safeKey(emp)}|${i}`] || []).forEach(s => { total += calcSlotMinutes(s.start, s.end) / 60; });
-      });
-      result[emp] = total.toFixed(1);
+      const empSlots = slots.filter(s => s.employee_id === emp.id);
+      empSlots.forEach(s => { total += calcSlotMinutes(s.start_time, s.end_time) / 60; });
+      result[emp.id] = total.toFixed(1);
     });
     return result;
-  }, [slots, employees, dates, weekKey]);
+  }, [slots, employees]);
 
-  function addSlot() {
+  async function addSlot() {
     if (!modal) return;
-    const { emp, dayIdx } = modal;
-    const newSlots = { ...slots };
-    const mainKey = `${weekKey}|${safeKey(emp)}|${dayIdx}`;
-    newSlots[mainKey] = [...(newSlots[mainKey] || []), { start: slotForm.start, end: slotForm.end, id: genId() }];
+    const { empId, dayIdx } = modal;
+    const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end }];
     (slotForm.copyDays || []).forEach(di => {
-      const k = `${weekKey}|${safeKey(emp)}|${di}`;
-      newSlots[k] = [...(newSlots[k] || []), { start: slotForm.start, end: slotForm.end, id: genId() }];
+      entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end });
     });
-    setSlots(newSlots);
+    await addSlots(entries);
     setModal(null);
   }
 
@@ -521,25 +464,24 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, setSlot
           </thead>
           <tbody>
             {employees.map((emp, ei) => (
-              <tr key={emp} style={{ background: ei % 2 === 0 ? "white" : "#fafafa" }}>
-                <td style={{ fontSize: 13, fontWeight: 500, padding: "8px 8px" }}>{emp}</td>
+              <tr key={emp.id} style={{ background: ei % 2 === 0 ? "white" : "#fafafa" }}>
+                <td style={{ fontSize: 13, fontWeight: 500, padding: "8px 8px" }}>{emp.name}</td>
                 {dates.map((_, dayIdx) => {
-                  const slotKey = `${weekKey}|${safeKey(emp)}|${dayIdx}`;
-                  const daySlots = slots[slotKey] || [];
+                  const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
                   return (
                     <td key={dayIdx} style={{ padding: "4px", verticalAlign: "top", borderLeft: "1px solid #f0f0f0" }}>
                       {daySlots.map(s => (
                         <div key={s.id} style={{ background: SLOT_COLORS[ei % SLOT_COLORS.length] + "22", border: `1px solid ${SLOT_COLORS[ei % SLOT_COLORS.length]}`, borderRadius: 4, padding: "2px 4px", marginBottom: 2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                          <span>{s.start}–{s.end}</span>
-                          <span onClick={() => setSlots({ ...slots, [slotKey]: (slots[slotKey] || []).filter(sl => sl.id !== s.id) })} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
+                          <span>{s.start_time}–{s.end_time}</span>
+                          <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
                         </div>
                       ))}
-                      <div onClick={() => { setModal({ emp, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [] }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
+                      <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [] }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
                     </td>
                   );
                 })}
                 <td style={{ textAlign: "center", fontSize: 13, fontWeight: 500, borderLeft: "1px solid #e5e5e5", padding: "8px 4px" }}>
-                  <WeekTotalCell worked={parseFloat(weekHours[emp])} contract={contractHours[emp]} />
+                  <WeekTotalCell worked={parseFloat(weekHours[emp.id] || "0")} contract={emp.contract_hours} />
                 </td>
               </tr>
             ))}
@@ -551,53 +493,59 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, setSlot
   );
 }
 
-function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
+function PointeuseTab({ employees, entries, clockIn, clockOut, verifyPin }) {
   const [pinModal, setPinModal] = useState(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
   const pinRef = useRef();
 
+  const today = new Date().toISOString().split("T")[0];
+
+  function getEmployeeStatus(empId) {
+    const todayEntries = entries.filter(e => e.employee_id === empId && e.work_date === today);
+    const openEntry = todayEntries.find(e => e.arrival_ts && !e.departure_ts);
+    return { isIn: !!openEntry, openEntry, todayEntries };
+  }
+
+  function getDayTotal(empId) {
+    const todayEntries = entries.filter(e => e.employee_id === empId && e.work_date === today);
+    let total = 0;
+    todayEntries.forEach(e => {
+      if (e.arrival_ts && e.departure_ts) {
+        total += diffH(e.arrival_ts, e.departure_ts);
+      } else if (e.arrival_ts) {
+        total += diffH(e.arrival_ts, Date.now());
+      }
+    });
+    return total;
+  }
+
   function openPinModal(emp) {
-    const today = new Date().toDateString();
-    const key = `${safeKey(emp)}|${today}`;
-    const rec = pointages[key];
-    const action = (!rec || rec.status === "out") ? "début de shift" : "fin de shift";
+    const { isIn } = getEmployeeStatus(emp.id);
+    const action = isIn ? "fin de shift" : "début de shift";
     setPinModal({ emp, action }); setPinInput(""); setPinError(false);
     setTimeout(() => pinRef.current?.focus(), 100);
   }
 
-  function validatePin() {
-    if (verifyPin(pinInput)) { doPointer(pinModal.emp); setPinModal(null); setPinInput(""); }
-    else { setPinError(true); setPinInput(""); setTimeout(() => setPinError(false), 1500); }
-  }
-
-  function doPointer(emp) {
-    const today = new Date().toDateString();
-    const key = `${safeKey(emp)}|${today}`;
-    const rec = pointages[key];
-    if (!rec || rec.status === "out") {
-      setPointages({ ...pointages, [key]: { status: "in", arrivalTs: Date.now(), sessions: rec?.sessions || [] } });
+  async function validatePin() {
+    if (verifyPin(pinInput)) {
+      const { isIn, openEntry } = getEmployeeStatus(pinModal.emp.id);
+      if (isIn && openEntry) {
+        await clockOut(openEntry.id);
+      } else {
+        await clockIn(pinModal.emp.id);
+      }
+      setPinModal(null); setPinInput("");
     } else {
-      const sessions = [...(rec.sessions || []), { in: rec.arrivalTs, out: Date.now() }];
-      setPointages({ ...pointages, [key]: { status: "out", sessions } });
+      setPinError(true); setPinInput(""); setTimeout(() => setPinError(false), 1500);
     }
   }
 
-  function getDayTotal(emp) {
-    const today = new Date().toDateString();
-    const key = `${safeKey(emp)}|${today}`;
-    const rec = pointages[key];
-    if (!rec) return 0;
-    let total = (rec.sessions || []).reduce((a, s) => a + diffH(s.in, s.out), 0);
-    if (rec.status === "in") total += diffH(rec.arrivalTs, Date.now());
-    return total;
-  }
-
-  function getHistory(emp) {
-    return Object.entries(pointages)
-      .filter(([k]) => k.startsWith(`${safeKey(emp)}|`))
-      .sort(([a], [b]) => new Date(b.split("|")[1]) - new Date(a.split("|")[1]))
-      .slice(0, 5);
+  function getHistory(empId) {
+    return entries
+      .filter(e => e.employee_id === empId && e.departure_ts)
+      .sort((a, b) => b.work_date.localeCompare(a.work_date))
+      .slice(0, 10);
   }
 
   return (
@@ -607,18 +555,19 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
       </p>
       <div style={{ display: "grid", gap: 12 }}>
         {employees.map((emp, ei) => {
-          const today = new Date().toDateString();
-          const key = `${safeKey(emp)}|${today}`;
-          const rec = pointages[key]; const isIn = rec?.status === "in"; const total = getDayTotal(emp);
+          const { isIn, todayEntries } = getEmployeeStatus(emp.id);
+          const total = getDayTotal(emp.id);
+          const completedSessions = todayEntries.filter(e => e.arrival_ts && e.departure_ts);
+          const openEntry = todayEntries.find(e => e.arrival_ts && !e.departure_ts);
           return (
-            <div key={emp} style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1rem 1.25rem" }}>
+            <div key={emp.id} style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: SLOT_COLORS[ei % SLOT_COLORS.length] + "22", border: `1px solid ${SLOT_COLORS[ei % SLOT_COLORS.length]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: SLOT_COLORS[ei % SLOT_COLORS.length] }}>{emp[0]}</div>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: SLOT_COLORS[ei % SLOT_COLORS.length] + "22", border: `1px solid ${SLOT_COLORS[ei % SLOT_COLORS.length]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: SLOT_COLORS[ei % SLOT_COLORS.length] }}>{emp.name[0]}</div>
                   <div>
-                    <p style={{ margin: 0, fontWeight: 600, fontSize: 15 }}>{emp}</p>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: 15 }}>{emp.name}</p>
                     <p style={{ margin: 0, fontSize: 12, color: isIn ? "#16a34a" : "#888" }}>
-                      {isIn ? `En service depuis ${fmtTime(rec.arrivalTs)}` : rec ? "Service terminé" : "Pas encore pointé"}
+                      {isIn ? `En service depuis ${fmtTime(openEntry?.arrival_ts)}` : todayEntries.length > 0 ? "Service terminé" : "Pas encore pointé"}
                     </p>
                   </div>
                 </div>
@@ -632,13 +581,13 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
                   </button>
                 </div>
               </div>
-              {rec?.sessions?.length > 0 && (
+              {completedSessions.length > 0 && (
                 <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #f0f0f0" }}>
                   <p style={{ margin: "0 0 6px", fontSize: 11, color: "#888" }}>Sessions du jour</p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {rec.sessions.map((s, i) => (
-                      <span key={i} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#f5f5f5", color: "#555", border: "1px solid #e5e5e5" }}>
-                        {fmtTime(s.in)} → {fmtTime(s.out)} ({fmtDuration(diffH(s.in, s.out))})
+                    {completedSessions.map((s) => (
+                      <span key={s.id} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#f5f5f5", color: "#555", border: "1px solid #e5e5e5" }}>
+                        {fmtTime(s.arrival_ts)} → {fmtTime(s.departure_ts)} ({fmtDuration(diffH(s.arrival_ts, s.departure_ts))})
                       </span>
                     ))}
                   </div>
@@ -649,21 +598,19 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
         })}
       </div>
       <div style={{ marginTop: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 12px" }}>Historique (5 derniers jours)</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 12px" }}>Historique récent</h3>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr>{["Employé","Date","Sessions","Total"].map(h => <th key={h} style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e5e5e5", fontWeight: 500, fontSize: 12, color: "#888" }}>{h}</th>)}</tr>
+              <tr>{["Employé","Date","Durée"].map(h => <th key={h} style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e5e5e5", fontWeight: 500, fontSize: 12, color: "#888" }}>{h}</th>)}</tr>
             </thead>
             <tbody>
-              {employees.flatMap(emp => getHistory(emp).map(([key, rec]) => {
-                const date = key.split("|")[1];
-                const total = (rec.sessions || []).reduce((a, s) => a + diffH(s.in, s.out), 0);
+              {employees.flatMap(emp => getHistory(emp.id).map(entry => {
+                const total = diffH(entry.arrival_ts, entry.departure_ts);
                 return (
-                  <tr key={key} className="row-hover">
-                    <td style={{ padding: "6px 8px" }}>{emp}</td>
-                    <td style={{ padding: "6px 8px", color: "#888" }}>{new Date(date).toLocaleDateString("fr-FR")}</td>
-                    <td style={{ padding: "6px 8px", color: "#888" }}>{rec.sessions?.length || 0}</td>
+                  <tr key={entry.id} className="row-hover">
+                    <td style={{ padding: "6px 8px" }}>{emp.name}</td>
+                    <td style={{ padding: "6px 8px", color: "#888" }}>{new Date(entry.work_date).toLocaleDateString("fr-FR")}</td>
                     <td style={{ padding: "6px 8px", fontWeight: 500 }}>{fmtDuration(total)}</td>
                   </tr>
                 );
@@ -676,7 +623,7 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
           <div style={{ background: "white", borderRadius: 10, border: pinError ? "1px solid #fca5a5" : "1px solid #e5e5e5", padding: "1.5rem", width: 280, transition: "border 0.2s" }}>
             <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 600 }}>Validation manager</p>
-            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#888" }}>{pinModal.emp} — <strong>{pinModal.action}</strong></p>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#888" }}>{pinModal.emp.name} — <strong>{pinModal.action}</strong></p>
             <input ref={pinRef} type="password" maxLength={4} value={pinInput} onChange={e => setPinInput(e.target.value)} onKeyDown={e => e.key === "Enter" && validatePin()} placeholder="Code à 4 chiffres" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: pinError ? "1px solid #fca5a5" : "1px solid #d0d0d0", background: pinError ? "#fee2e2" : "white", color: "#111", fontSize: 20, letterSpacing: 10, textAlign: "center", boxSizing: "border-box", marginBottom: 8 }} />
             {pinError && <p style={{ margin: "0 0 8px", fontSize: 12, color: "#dc2626", textAlign: "center" }}>Code incorrect</p>}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
@@ -690,7 +637,7 @@ function PointeuseTab({ employees, pointages, setPointages, verifyPin }) {
   );
 }
 
-function ParametresTab({ employees, setEmployees, contractHours, setContractHours, verifyPin, changePin, onSignOut }) {
+function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee, verifyPin, changePin, onSignOut }) {
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -720,26 +667,26 @@ function ParametresTab({ employees, setEmployees, contractHours, setContractHour
             <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager</p>
             <div style={{ display: "flex", gap: 8 }}>
               <input type="password" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value)} placeholder="Nouveau code (4 chiffres)" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 14 }} />
-              <button onClick={() => { if (newPin.length === 4) { changePin(newPin); setNewPin(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #86efac", background: "#dcfce7", color: "#16a34a", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Enregistrer</button>
+              <button onClick={async () => { if (newPin.length === 4) { await changePin(newPin); setNewPin(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #86efac", background: "#dcfce7", color: "#16a34a", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Enregistrer</button>
             </div>
           </div>
           <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
             <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Employés</p>
             <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
-              {employees.map((emp, ei) => (
-                <div key={emp} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "#fafafa", borderRadius: 8, gap: 8 }}>
-                  <span style={{ fontSize: 13, flex: 1 }}>{emp}</span>
+              {employees.map((emp) => (
+                <div key={emp.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "#fafafa", borderRadius: 8, gap: 8 }}>
+                  <span style={{ fontSize: 13, flex: 1 }}>{emp.name}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <input type="number" min={0} max={48} value={contractHours[emp] || ""} onChange={e => setContractHours({ ...contractHours, [emp]: e.target.value ? parseFloat(e.target.value) : undefined })} placeholder="h/sem" style={{ width: 64, padding: "4px 6px", borderRadius: 6, border: "1px solid #d0d0d0", background: "white", fontSize: 13, textAlign: "center" }} />
+                    <input type="number" min={0} max={48} value={emp.contract_hours || ""} onChange={e => updateEmployee(emp.id, { contract_hours: e.target.value ? parseFloat(e.target.value) : null })} placeholder="h/sem" style={{ width: 64, padding: "4px 6px", borderRadius: 6, border: "1px solid #d0d0d0", background: "white", fontSize: 13, textAlign: "center" }} />
                     <span style={{ fontSize: 11, color: "#aaa" }}>h/sem</span>
                   </div>
-                  <span onClick={() => setEmployees(employees.filter((_, i) => i !== ei))} style={{ fontSize: 12, color: "#dc2626", cursor: "pointer" }}>Supprimer</span>
+                  <span onClick={() => deleteEmployee(emp.id)} style={{ fontSize: 12, color: "#dc2626", cursor: "pointer" }}>Supprimer</span>
                 </div>
               ))}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <input value={newEmp} onChange={e => setNewEmp(e.target.value)} onKeyDown={e => e.key === "Enter" && newEmp.trim() && (setEmployees([...employees, newEmp.trim()]), setNewEmp(""))} placeholder="Prénom du nouvel employé" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 14 }} />
-              <button onClick={() => { if (newEmp.trim()) { setEmployees([...employees, newEmp.trim()]); setNewEmp(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter</button>
+              <input value={newEmp} onChange={e => setNewEmp(e.target.value)} onKeyDown={async e => { if (e.key === "Enter" && newEmp.trim()) { await addEmployee(newEmp.trim()); setNewEmp(""); } }} placeholder="Prénom du nouvel employé" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 14 }} />
+              <button onClick={async () => { if (newEmp.trim()) { await addEmployee(newEmp.trim()); setNewEmp(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter</button>
             </div>
           </div>
           <button onClick={() => setSettingsUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
@@ -758,7 +705,7 @@ const MAIN_TABS = [
   { id: "equipe", label: "👥 Équipe" },
 ];
 
-export default function App({ onSignOut }) {
+export default function App({ onSignOut, userId }) {
   const [mainTab, setMainTab] = useState("dlc");
   return (
     <div style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", maxWidth: 920, margin: "0 auto", padding: "1rem", background: "white", minHeight: "100vh" }}>
@@ -783,8 +730,8 @@ export default function App({ onSignOut }) {
           ))}
         </div>
       </div>
-      {mainTab === "dlc" && <DLCModule />}
-      {mainTab === "equipe" && <EquipeModule onSignOut={onSignOut} />}
+      {mainTab === "dlc" && <DLCModule userId={userId} />}
+      {mainTab === "equipe" && <EquipeModule userId={userId} onSignOut={onSignOut} />}
     </div>
   );
 }
