@@ -1167,7 +1167,7 @@ function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, log
       {/* Tasks by zone */}
       {Object.keys(filteredZones).length === 0 ? (
         <div style={{ textAlign: "center", padding: "3rem 0", color: "#888", fontSize: 14 }}>
-          Aucune tâche de nettoyage — cliquez sur "+ Ajouter tâche"
+          Aucune tâche de nettoyage — allez dans <strong>⚙️ Paramètres</strong> pour en ajouter.
         </div>
       ) : (
         Object.entries(filteredZones).map(([zone, zoneTasks]) => (
