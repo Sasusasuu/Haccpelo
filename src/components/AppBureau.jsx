@@ -40,7 +40,7 @@ const btnS = { background: "transparent", color: "#111", border: "1px solid #d0d
 
 // ══ MODULE DLC ══
 function DLCModule({ userId }) {
-  const { produits, addProduct, updateProduct, deleteProduct } = useProducts(userId);
+  const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState(null);
   const [view, setView] = useState("liste");
