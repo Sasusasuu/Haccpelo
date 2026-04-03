@@ -742,7 +742,7 @@ async function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMin
   doc.save("planning_" + fmtShort(dates[0]) + "_" + fmtShort(dates[6]) + ".pdf");
 }
 
-function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees, fetchSlotsByWeekKey }) {
+function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees, fetchSlotsByWeekKey, roles }) {
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
