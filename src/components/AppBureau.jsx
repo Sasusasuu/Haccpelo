@@ -671,9 +671,10 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
   );
 }
 
-function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes) {
-  import("jspdf").then(({ default: jsPDF }) => {
-    import("jspdf-autotable").then(() => {
+async function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes) {
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
       // Title
