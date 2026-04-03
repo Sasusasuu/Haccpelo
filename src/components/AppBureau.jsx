@@ -265,6 +265,9 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
               <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>DLC suggérée : {fmtDate(aiSuggestion.dlc)}</span>
               <button onClick={applySuggestion} style={{ ...btnP, padding: "4px 12px", fontSize: 12, background: "#16a34a" }}>Appliquer</button>
             </div>
+            {aiSuggestion.categorie && (
+              <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 4 }}>🏷️ Catégorie suggérée : <strong>{aiSuggestion.categorie}</strong></div>
+            )}
             <div style={{ fontSize: 12, color: "#555" }}>
               {aiSuggestion.duree_jours && <span style={{ marginRight: 8 }}>📅 {aiSuggestion.duree_jours} jours</span>}
               {aiSuggestion.explication}
