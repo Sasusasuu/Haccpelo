@@ -521,6 +521,7 @@ function EquipeModule({ userId, onSignOut }) {
   const { slots, addSlots, deleteSlot, fetchSlotsByWeekKey } = usePlanningSlots(userId, weekKey);
   const { entries, clockIn, clockOut } = useTimeEntries(userId);
   const { verifyPin, changePin } = useSettings(userId);
+  const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
 
   const planBtnStyle = (active) => ({ padding: "6px 16px", borderRadius: 8, fontSize: 14, background: active ? "#EFF6FF" : "white", color: active ? "#1D4ED8" : "#555", border: active ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0", cursor: "pointer", fontWeight: active ? 600 : 400 });
 
@@ -531,9 +532,9 @@ function EquipeModule({ userId, onSignOut }) {
           <button key={t} onClick={() => setPlanTab(t)} style={planBtnStyle(planTab === t)}>{l}</button>
         ))}
       </div>
-      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} fetchSlotsByWeekKey={fetchSlotsByWeekKey} />}
+      {planTab === "planning" && <PlanningTab dates={dates} weekOffset={weekOffset} setWeekOffset={setWeekOffset} weekKey={weekKey} slots={slots} addSlots={addSlots} deleteSlot={deleteSlot} employees={employees} fetchSlotsByWeekKey={fetchSlotsByWeekKey} roles={roles} />}
       {planTab === "pointeuse" && <PointeuseTab employees={employees} entries={entries} clockIn={clockIn} clockOut={clockOut} verifyPin={verifyPin} />}
-      {planTab === "parametres" && <ParametresTab employees={employees} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} />}
+      {planTab === "parametres" && <ParametresTab employees={employees} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} verifyPin={verifyPin} changePin={changePin} onSignOut={onSignOut} roles={roles} addRole={addRole} updateRole={updateRole} deleteRole={deleteRole} />}
     </div>
   );
 }
