@@ -1128,7 +1128,37 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
             )}
           </div>
 
-          <button onClick={() => setSettingsUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
+          {/* Rôles personnalisables */}
+          <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>🎯 Rôles du planning</p>
+            <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+              {roles.map(r => (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "#fafafa", borderRadius: 8 }}>
+                  {editRoleId === r.id ? (
+                    <>
+                      <input value={editRoleLabel} onChange={e => setEditRoleLabel(e.target.value)} style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: "1px solid #d0d0d0", fontSize: 13, background: "white", color: "#111" }} />
+                      <input type="color" value={editRoleColor} onChange={e => setEditRoleColor(e.target.value)} style={{ width: 32, height: 28, border: "none", borderRadius: 4, cursor: "pointer", padding: 0 }} />
+                      <button onClick={async () => { await updateRole(r.id, { label: editRoleLabel, color: editRoleColor }); setEditRoleId(null); }} style={{ ...btnP, padding: "5px 10px", fontSize: 11, background: "#16a34a" }}>✓</button>
+                      <button onClick={() => setEditRoleId(null)} style={{ ...btnS, padding: "5px 8px", fontSize: 11 }}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: r.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, flex: 1 }}>{r.label}</span>
+                      <button onClick={() => { setEditRoleId(r.id); setEditRoleLabel(r.label); setEditRoleColor(r.color); }} style={{ ...btnS, padding: "4px 8px", fontSize: 11 }}>Modifier</button>
+                      <span onClick={() => deleteRole(r.id)} style={{ fontSize: 12, color: "#dc2626", cursor: "pointer" }}>Supprimer</span>
+                    </>
+                  )}
+                </div>
+              ))}
+              {roles.length === 0 && <div style={{ fontSize: 13, color: "#888", padding: 8 }}>Aucun rôle configuré</div>}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={newRoleLabel} onChange={e => setNewRoleLabel(e.target.value)} onKeyDown={async e => { if (e.key === "Enter" && newRoleLabel.trim()) { await addRole(newRoleLabel.trim(), newRoleColor); setNewRoleLabel(""); } }} placeholder="Nom du rôle" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 13 }} />
+              <input type="color" value={newRoleColor} onChange={e => setNewRoleColor(e.target.value)} style={{ width: 36, height: 34, border: "none", borderRadius: 6, cursor: "pointer", padding: 0 }} />
+              <button onClick={async () => { if (newRoleLabel.trim()) { await addRole(newRoleLabel.trim(), newRoleColor); setNewRoleLabel(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter</button>
+            </div>
+          </div>
           {onSignOut && (
             <button onClick={onSignOut} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fee2e2", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Déconnexion</button>
           )}
