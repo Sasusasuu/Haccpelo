@@ -17,6 +17,16 @@ const fmtDate = (d) => { if (!d) return "—"; const [y,m,j] = d.split("-"); ret
 const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "", photo_url: "" });
 
 const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const ROLES = [
+  { label: "Runner", color: "#2563eb" },
+  { label: "Chef de salle", color: "#7c3aed" },
+  { label: "Cuisinier", color: "#dc2626" },
+  { label: "Barman", color: "#d97706" },
+  { label: "Plongeur", color: "#0891b2" },
+  { label: "Serveur", color: "#16a34a" },
+];
+const ROLE_COLOR_MAP = Object.fromEntries(ROLES.map(r => [r.label, r.color]));
+const getRoleColor = (role) => ROLE_COLOR_MAP[role] || "#888";
 const SLOT_COLORS = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#BA7517"];
 
 const fmtShort = (d) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
