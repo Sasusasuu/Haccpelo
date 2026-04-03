@@ -11,7 +11,7 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 const tomorrowStr = () => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split("T")[0]; };
 const statusOf = (dlc) => { if (!dlc) return "ok"; if (dlc <= todayStr()) return "expire"; if (dlc <= tomorrowStr()) return "urgent"; return "ok"; };
 const fmtDate = (d) => { if (!d) return "—"; const [y,m,j] = d.split("-"); return `${j}/${m}/${y}`; };
-const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "" });
+const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "", photo_url: "" });
 
 const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const SLOT_COLORS = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#BA7517"];
