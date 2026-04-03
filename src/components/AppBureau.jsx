@@ -673,82 +673,79 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
 
 async function exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes) {
   const { default: jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
+  await import("jspdf-autotable");
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-      // Title
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text(`Planning — Semaine du ${fmtShort(dates[0])} au ${fmtShort(dates[6])} ${dates[0].getFullYear()}`, 14, 16);
+  // Title
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Planning - Semaine du " + fmtShort(dates[0]) + " au " + fmtShort(dates[6]) + " " + dates[0].getFullYear(), 14, 16);
 
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(130);
-      doc.text("Holding NHA", 14, 22);
-      doc.setTextColor(0);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(130);
+  doc.text("Holding NHA", 14, 22);
+  doc.setTextColor(0);
 
-      // Table
-      const head = [["Employe", ...DAYS.map((d, i) => `${d} ${fmtShort(dates[i])}`), "Total"]];
-      const body = employees.map(emp => {
-        const row = [emp.name];
-        for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
-          const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
-          if (daySlots.length === 0) {
-            row.push("");
-          } else {
-            row.push(daySlots.map(s => {
-              let txt = `${s.start_time}-${s.end_time}`;
-              if (s.role) txt += `\n${s.role}`;
-              return txt;
-            }).join("\n"));
-          }
-        }
-        const total = weekHours[emp.id] || "0";
-        const contract = emp.contract_hours;
-        row.push(contract ? `${total}h / ${contract}h` : `${total}h`);
-        return row;
-      });
-
-      doc.autoTable({
-        head,
-        body,
-        startY: 28,
-        theme: "grid",
-        styles: { fontSize: 8, cellPadding: 3, valign: "top", lineColor: [200, 200, 200], lineWidth: 0.3 },
-        headStyles: { fillColor: [17, 17, 17], textColor: 255, fontStyle: "bold", fontSize: 8, halign: "center" },
-        columnStyles: {
-          0: { fontStyle: "bold", cellWidth: 30 },
-          8: { halign: "center", fontStyle: "bold", cellWidth: 28 },
-        },
-        alternateRowStyles: { fillColor: [248, 248, 248] },
-        didParseCell: function (data) {
-          if (data.section === "body" && data.column.index >= 1 && data.column.index <= 7) {
-            data.cell.styles.halign = "center";
-            data.cell.styles.fontSize = 7;
-          }
-        },
-      });
-
-      // Legend
-      const finalY = doc.lastAutoTable.finalY + 8;
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.text("Roles :", 14, finalY);
-      let xPos = 32;
-      ROLES.forEach(r => {
-        const hex = r.color;
-        const rgb = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
-        doc.setFillColor(...rgb);
-        doc.roundedRect(xPos, finalY - 3, 4, 4, 1, 1, "F");
-        doc.setFont("helvetica", "normal");
-        doc.text(r.label, xPos + 6, finalY);
-        xPos += doc.getTextWidth(r.label) + 12;
-      });
-
-      doc.save(`planning_${fmtShort(dates[0])}_${fmtShort(dates[6])}.pdf`);
-    });
+  // Table
+  const head = [["Employe", ...DAYS.map((d, i) => d + " " + fmtShort(dates[i])), "Total"]];
+  const body = employees.map(emp => {
+    const row = [emp.name];
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+      const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
+      if (daySlots.length === 0) {
+        row.push("");
+      } else {
+        row.push(daySlots.map(s => {
+          let txt = s.start_time + "-" + s.end_time;
+          if (s.role) txt += "\n" + s.role;
+          return txt;
+        }).join("\n"));
+      }
+    }
+    const total = weekHours[emp.id] || "0";
+    const contract = emp.contract_hours;
+    row.push(contract ? total + "h / " + contract + "h" : total + "h");
+    return row;
   });
+
+  doc.autoTable({
+    head,
+    body,
+    startY: 28,
+    theme: "grid",
+    styles: { fontSize: 8, cellPadding: 3, valign: "top", lineColor: [200, 200, 200], lineWidth: 0.3 },
+    headStyles: { fillColor: [17, 17, 17], textColor: 255, fontStyle: "bold", fontSize: 8, halign: "center" },
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: 30 },
+      8: { halign: "center", fontStyle: "bold", cellWidth: 28 },
+    },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    didParseCell: function (data) {
+      if (data.section === "body" && data.column.index >= 1 && data.column.index <= 7) {
+        data.cell.styles.halign = "center";
+        data.cell.styles.fontSize = 7;
+      }
+    },
+  });
+
+  // Legend
+  const finalY = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("Roles :", 14, finalY);
+  let xPos = 32;
+  ROLES.forEach(r => {
+    const hex = r.color;
+    const rgb = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+    doc.setFillColor(...rgb);
+    doc.roundedRect(xPos, finalY - 3, 4, 4, 1, 1, "F");
+    doc.setFont("helvetica", "normal");
+    doc.text(r.label, xPos + 6, finalY);
+    xPos += doc.getTextWidth(r.label) + 12;
+  });
+
+  doc.save("planning_" + fmtShort(dates[0]) + "_" + fmtShort(dates[6]) + ".pdf");
 }
 
 function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlots, deleteSlot, employees, fetchSlotsByWeekKey }) {
