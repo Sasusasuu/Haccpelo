@@ -820,7 +820,7 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
 
       {/* Actions bar */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes)} style={{ ...btnS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+        <button onClick={() => exportPlanningPDF(dates, employees, slots, weekHours, calcSlotMinutes, roles)} style={{ ...btnS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
           📄 Export PDF
         </button>
         <button onClick={copyPreviousWeek} disabled={copying} style={{ ...btnS, padding: "5px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 4, opacity: copying ? 0.5 : 1 }}>
