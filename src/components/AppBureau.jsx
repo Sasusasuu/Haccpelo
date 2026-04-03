@@ -96,7 +96,7 @@ function DLCModule({ userId }) {
           filtered={filtered} produits={produits} nbAlerte={nbAlerte}
           filtre={filtre} setFiltre={setFiltre} search={search} setSearch={setSearch}
           statusStyle={statusStyle}
-          onEdit={(p) => { setForm({ nom: p.nom, categorie: p.categorie, dlc: p.dlc, quantite: p.quantite || "", fab: p.fab || todayStr() }); setEditId(p.id); setView("ajouter"); }}
+          onEdit={(p) => { setForm({ nom: p.nom, categorie: p.categorie, dlc: p.dlc, quantite: p.quantite || "", fab: p.fab || todayStr(), photo_url: p.photo_url || "" }); setEditId(p.id); setView("ajouter"); }}
           onEtiquette={(p) => { setEtiquette(p); setView("etiquette"); }}
           onDelete={(p) => setConfirmDelete(p)}
         />
