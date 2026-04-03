@@ -617,13 +617,27 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
       <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e5e5", padding: "2rem", width: 360, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
         <h3 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700, color: "#111" }}>Ajouter un créneau</h3>
         <p style={{ margin: "0 0 24px", fontSize: 13, color: "#888" }}>{modal.empName} · {DAYS[modal.dayIdx]} {fmtShort(dates[modal.dayIdx])}</p>
-        <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
+        <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
           {[["start","🕐 Début"],["end","🕐 Fin"]].map(([k, l]) => (
             <div key={k} style={{ flex: 1 }}>
               <label style={{ fontSize: 13, fontWeight: 500, color: "#444", display: "block", marginBottom: 8 }}>{l}</label>
               <input type="time" value={slotForm[k]} onChange={e => setSlotForm({ ...slotForm, [k]: e.target.value })} style={{ width: "100%", padding: "12px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 22, fontWeight: 700, textAlign: "center", boxSizing: "border-box", cursor: "pointer" }} />
             </div>
           ))}
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 13, fontWeight: 500, color: "#444", display: "block", marginBottom: 8 }}>🎯 Rôle</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {ROLES.map(r => {
+              const selected = slotForm.role === r.label;
+              return (
+                <button key={r.label} onClick={() => setSlotForm({ ...slotForm, role: selected ? "" : r.label })}
+                  style={{ padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: selected ? r.color : "white", color: selected ? "white" : r.color, border: `1.5px solid ${r.color}`, cursor: "pointer", transition: "all 0.15s" }}>
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div style={{ background: "#f5f5f5", borderRadius: 8, padding: "10px 14px", marginBottom: 20, textAlign: "center" }}>
           <span style={{ fontSize: 15, fontWeight: 500, color: "#333" }}>
