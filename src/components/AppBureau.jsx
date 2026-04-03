@@ -298,22 +298,72 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel, uploadPhoto }) 
         </div>
       </div>
 
-      {/* Photo traçabilité */}
+      {/* Photo traçabilité + scan IA */}
       <div style={{ marginBottom: 12 }}>
-        <label style={lbl}>📷 Photo traçabilité</label>
+        <label style={lbl}>📷 Photo traçabilité — Scan IA</label>
         <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{ display: "none" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {form.photo_url ? (
-            <img src={form.photo_url} alt="Photo produit" style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", border: "1px solid #d0d0d0" }} />
-          ) : (
-            <div style={{ width: 64, height: 64, borderRadius: 8, background: "#f5f5f5", border: "1px dashed #ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#bbb" }}>📷</div>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ ...btnS, padding: "6px 14px", fontSize: 12 }}>
-              {uploading ? "Envoi..." : form.photo_url ? "Changer la photo" : "Prendre / Choisir une photo"}
-            </button>
-            {form.photo_url && (
-              <button type="button" onClick={() => setForm({ ...form, photo_url: "" })} style={{ ...btnS, padding: "4px 10px", fontSize: 11, color: "#dc2626", borderColor: "#fca5a5" }}>Supprimer la photo</button>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          {/* Left: photo */}
+          <div style={{ flexShrink: 0 }}>
+            {form.photo_url ? (
+              <img src={form.photo_url} alt="Photo produit" style={{ width: 100, height: 100, borderRadius: 8, objectFit: "cover", border: "1px solid #d0d0d0" }} />
+            ) : (
+              <div style={{ width: 100, height: 100, borderRadius: 8, background: "#f5f5f5", border: "1px dashed #ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#bbb" }}>📷</div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading || scanning} style={{ ...btnS, padding: "5px 10px", fontSize: 11, width: 100 }}>
+                {uploading ? "Envoi..." : scanning ? "Scan..." : form.photo_url ? "Changer" : "📷 Photo"}
+              </button>
+              {form.photo_url && (
+                <button type="button" onClick={() => { setForm({ ...form, photo_url: "" }); setScanResult(null); }} style={{ ...btnS, padding: "3px 8px", fontSize: 10, color: "#dc2626", borderColor: "#fca5a5", width: 100 }}>Supprimer</button>
+              )}
+            </div>
+          </div>
+
+          {/* Right: scanned info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {scanning && (
+              <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: 12, textAlign: "center" }}>
+                <div style={{ fontSize: 13, color: "#1e40af", fontWeight: 500 }}>🔍 Analyse en cours...</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>L'IA scanne la photo pour extraire les informations</div>
+              </div>
+            )}
+            {scanResult && !scanning && (
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#166534" }}>✅ Infos détectées</span>
+                  <button onClick={applyScan} style={{ ...btnP, padding: "4px 10px", fontSize: 11, background: "#16a34a" }}>Remplir le formulaire</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px", fontSize: 12 }}>
+                  {scanResult.nom && <ScanField label="Produit" value={scanResult.nom} />}
+                  {scanResult.categorie && <ScanField label="Catégorie" value={scanResult.categorie} />}
+                  {scanResult.dlc && <ScanField label="DLC" value={fmtDate(scanResult.dlc)} />}
+                  {scanResult.fab && <ScanField label="Fabrication" value={fmtDate(scanResult.fab)} />}
+                  {scanResult.lot && <ScanField label="Lot" value={scanResult.lot} />}
+                  {scanResult.fournisseur && <ScanField label="Fournisseur" value={scanResult.fournisseur} />}
+                  {scanResult.poids && <ScanField label="Poids" value={scanResult.poids} />}
+                  {scanResult.temperature && <ScanField label="Temp." value={scanResult.temperature} />}
+                  {scanResult.origine && <ScanField label="Origine" value={scanResult.origine} />}
+                  {scanResult.allergenes && <ScanField label="Allergènes" value={scanResult.allergenes} highlight />}
+                </div>
+                {scanResult.ingredients && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: "#555" }}><strong>Ingrédients :</strong> {scanResult.ingredients}</div>
+                )}
+                {scanResult.observations && (
+                  <div style={{ marginTop: 4, fontSize: 11, color: "#666", fontStyle: "italic" }}>💡 {scanResult.observations}</div>
+                )}
+              </div>
+            )}
+            {!scanning && !scanResult && !form.photo_url && (
+              <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, textAlign: "center" }}>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>Prenez une photo d'un produit ou de son étiquette</div>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>L'IA extraira automatiquement les informations de traçabilité</div>
+              </div>
+            )}
+            {!scanning && !scanResult && form.photo_url && (
+              <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 12, textAlign: "center" }}>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>Aucune info détectée. Changez de photo ou remplissez manuellement.</div>
+              </div>
             )}
           </div>
         </div>
