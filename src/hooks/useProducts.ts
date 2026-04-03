@@ -8,6 +8,7 @@ export interface Product {
   fab: string;
   dlc: string;
   quantite: string;
+  photo_url: string;
 }
 
 export function useProducts(userId: string | undefined) {
@@ -18,7 +19,7 @@ export function useProducts(userId: string | undefined) {
     if (!userId) return;
     const { data, error } = await supabase
       .from("products")
-      .select("id, nom, categorie, fab, dlc, quantite")
+      .select("id, nom, categorie, fab, dlc, quantite, photo_url")
       .eq("user_id", userId)
       .order("dlc", { ascending: true });
     if (!error && data) {
@@ -29,6 +30,7 @@ export function useProducts(userId: string | undefined) {
         fab: p.fab || "",
         dlc: p.dlc,
         quantite: p.quantite || "",
+        photo_url: p.photo_url || "",
       })));
     }
     setLoading(false);
@@ -36,15 +38,25 @@ export function useProducts(userId: string | undefined) {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  const uploadPhoto = async (file: File): Promise<string | null> => {
+    if (!userId) return null;
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("product-photos").upload(path, file);
+    if (error) { console.error("Upload error:", error); return null; }
+    const { data } = supabase.storage.from("product-photos").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   const addProduct = async (product: Omit<Product, "id">) => {
     if (!userId) return;
     const { data, error } = await supabase
       .from("products")
-      .insert({ user_id: userId, nom: product.nom, categorie: product.categorie, fab: product.fab || null, dlc: product.dlc, quantite: product.quantite || null })
-      .select("id, nom, categorie, fab, dlc, quantite")
+      .insert({ user_id: userId, nom: product.nom, categorie: product.categorie, fab: product.fab || null, dlc: product.dlc, quantite: product.quantite || null, photo_url: product.photo_url || null })
+      .select("id, nom, categorie, fab, dlc, quantite, photo_url")
       .single();
     if (!error && data) {
-      setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "" }]);
+      setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "", photo_url: data.photo_url || "" }]);
     }
   };
 
@@ -52,7 +64,7 @@ export function useProducts(userId: string | undefined) {
     if (!userId) return;
     const { error } = await supabase
       .from("products")
-      .update({ nom: product.nom, categorie: product.categorie, fab: product.fab || null, dlc: product.dlc, quantite: product.quantite || null })
+      .update({ nom: product.nom, categorie: product.categorie, fab: product.fab || null, dlc: product.dlc, quantite: product.quantite || null, photo_url: product.photo_url || null })
       .eq("id", id)
       .eq("user_id", userId);
     if (!error) {
@@ -66,5 +78,5 @@ export function useProducts(userId: string | undefined) {
     if (!error) setProduits(prev => prev.filter(p => p.id !== id));
   };
 
-  return { produits, loading, addProduct, updateProduct, deleteProduct };
+  return { produits, loading, addProduct, updateProduct, deleteProduct, uploadPhoto };
 }

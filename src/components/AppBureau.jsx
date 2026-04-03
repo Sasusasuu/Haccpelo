@@ -11,7 +11,7 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 const tomorrowStr = () => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split("T")[0]; };
 const statusOf = (dlc) => { if (!dlc) return "ok"; if (dlc <= todayStr()) return "expire"; if (dlc <= tomorrowStr()) return "urgent"; return "ok"; };
 const fmtDate = (d) => { if (!d) return "—"; const [y,m,j] = d.split("-"); return `${j}/${m}/${y}`; };
-const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "" });
+const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "", photo_url: "" });
 
 const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const SLOT_COLORS = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#BA7517"];
@@ -40,7 +40,7 @@ const btnS = { background: "transparent", color: "#111", border: "1px solid #d0d
 
 // ══ MODULE DLC ══
 function DLCModule({ userId }) {
-  const { produits, addProduct, updateProduct, deleteProduct } = useProducts(userId);
+  const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState(null);
   const [view, setView] = useState("liste");
@@ -96,7 +96,7 @@ function DLCModule({ userId }) {
           filtered={filtered} produits={produits} nbAlerte={nbAlerte}
           filtre={filtre} setFiltre={setFiltre} search={search} setSearch={setSearch}
           statusStyle={statusStyle}
-          onEdit={(p) => { setForm({ nom: p.nom, categorie: p.categorie, dlc: p.dlc, quantite: p.quantite || "", fab: p.fab || todayStr() }); setEditId(p.id); setView("ajouter"); }}
+          onEdit={(p) => { setForm({ nom: p.nom, categorie: p.categorie, dlc: p.dlc, quantite: p.quantite || "", fab: p.fab || todayStr(), photo_url: p.photo_url || "" }); setEditId(p.id); setView("ajouter"); }}
           onEtiquette={(p) => { setEtiquette(p); setView("etiquette"); }}
           onDelete={(p) => setConfirmDelete(p)}
         />
@@ -105,6 +105,7 @@ function DLCModule({ userId }) {
         <DLCAddForm form={form} setForm={setForm} editId={editId}
           onSubmit={handleSubmit}
           onCancel={() => { setView("liste"); setEditId(null); setForm(makeDefaultForm()); }}
+          uploadPhoto={uploadPhoto}
         />
       )}
       {view === "etiquette" && etiquette && <EtiquetteView etiquette={etiquette} onBack={() => setView("liste")} />}
@@ -139,10 +140,11 @@ function DLCListView({ filtered, produits, nbAlerte, filtre, setFiltre, search, 
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, tableLayout: "fixed" }}>
             <thead>
               <tr style={{ background: "#fafafa", borderBottom: "1px solid #e5e5e5" }}>
-                {[["Produit","28%"],["Catégorie","20%"],["DLC","18%"],["Statut","16%"]].map(([h, w]) => (
-                  <th key={h} style={{ padding: "10px 10px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#888", width: w }}>{h}</th>
+                <th style={{ padding: "10px 6px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#888", width: "6%" }}></th>
+                {[["Produit","24%"],["Catégorie","18%"],["DLC","16%"],["Statut","16%"]].map(([h, w]) => (
+                  <th key={h} style={{ padding: "10px 6px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#888", width: w }}>{h}</th>
                 ))}
-                <th className="no-print" style={{ padding: "10px 8px", textAlign: "right", fontWeight: 500, fontSize: 12, color: "#888", width: "18%" }}>Actions</th>
+                <th className="no-print" style={{ padding: "10px 8px", textAlign: "right", fontWeight: 500, fontSize: 12, color: "#888", width: "20%" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -150,7 +152,14 @@ function DLCListView({ filtered, produits, nbAlerte, filtre, setFiltre, search, 
                 const st = statusStyle(p.dlc);
                 return (
                   <tr key={p.id} className="row-hover" style={{ borderBottom: i < filtered.length - 1 ? "1px solid #f0f0f0" : "none" }}>
-                    <td style={{ padding: "10px 10px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nom}</td>
+                    <td style={{ padding: "6px 6px" }}>
+                      {p.photo_url ? (
+                        <img src={p.photo_url} alt={p.nom} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: 6, background: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#aaa" }}>📷</div>
+                      )}
+                    </td>
+                    <td style={{ padding: "10px 6px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nom}</td>
                     <td style={{ padding: "10px 8px", fontSize: 13, color: "#666" }}>{p.categorie}</td>
                     <td style={{ padding: "10px 8px", fontFamily: "monospace", fontSize: 13 }}>{fmtDate(p.dlc)}</td>
                     <td style={{ padding: "10px 8px" }}>
@@ -174,9 +183,25 @@ function DLCListView({ filtered, produits, nbAlerte, filtre, setFiltre, search, 
   );
 }
 
-function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
+function DLCAddForm({ form, setForm, editId, onSubmit, onCancel, uploadPhoto }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadPhoto(file);
+      if (url) setForm({ ...form, photo_url: url });
+    } catch (err) {
+      console.error("Photo upload error:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSuggestDLC = async () => {
     if (!form.nom) return;
@@ -234,6 +259,27 @@ function DLCAddForm({ form, setForm, editId, onSubmit, onCancel }) {
         <div>
           <label style={lbl}>Date DLC *</label>
           <input type="date" style={inp} value={form.dlc} onChange={e => setForm({ ...form, dlc: e.target.value })} />
+        </div>
+      </div>
+
+      {/* Photo traçabilité */}
+      <div style={{ marginBottom: 12 }}>
+        <label style={lbl}>📷 Photo traçabilité</label>
+        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{ display: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {form.photo_url ? (
+            <img src={form.photo_url} alt="Photo produit" style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", border: "1px solid #d0d0d0" }} />
+          ) : (
+            <div style={{ width: 64, height: 64, borderRadius: 8, background: "#f5f5f5", border: "1px dashed #ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#bbb" }}>📷</div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ ...btnS, padding: "6px 14px", fontSize: 12 }}>
+              {uploading ? "Envoi..." : form.photo_url ? "Changer la photo" : "Prendre / Choisir une photo"}
+            </button>
+            {form.photo_url && (
+              <button type="button" onClick={() => setForm({ ...form, photo_url: "" })} style={{ ...btnS, padding: "4px 10px", fontSize: 11, color: "#dc2626", borderColor: "#fca5a5" }}>Supprimer la photo</button>
+            )}
+          </div>
         </div>
       </div>
 
