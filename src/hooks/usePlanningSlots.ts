@@ -8,6 +8,7 @@ export interface PlanningSlot {
   day_index: number;
   start_time: string;
   end_time: string;
+  role: string | null;
 }
 
 export function usePlanningSlots(userId: string | undefined, weekKey: string) {
@@ -18,7 +19,7 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
     if (!userId || !weekKey) return;
     const { data, error } = await supabase
       .from("planning_slots")
-      .select("id, employee_id, week_key, day_index, start_time, end_time")
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role")
       .eq("user_id", userId)
       .eq("week_key", weekKey);
     if (!error && data) setSlots(data);
@@ -27,18 +28,18 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
-  const addSlot = async (employeeId: string, dayIndex: number, startTime: string, endTime: string) => {
+  const addSlot = async (employeeId: string, dayIndex: number, startTime: string, endTime: string, role?: string) => {
     if (!userId) return;
     const { data, error } = await supabase
       .from("planning_slots")
-      .insert({ user_id: userId, employee_id: employeeId, week_key: weekKey, day_index: dayIndex, start_time: startTime, end_time: endTime })
-      .select("id, employee_id, week_key, day_index, start_time, end_time")
+      .insert({ user_id: userId, employee_id: employeeId, week_key: weekKey, day_index: dayIndex, start_time: startTime, end_time: endTime, role: role || null })
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role")
       .single();
     if (!error && data) setSlots(prev => [...prev, data]);
     return data;
   };
 
-  const addSlots = async (entries: { employeeId: string; dayIndex: number; startTime: string; endTime: string }[]) => {
+  const addSlots = async (entries: { employeeId: string; dayIndex: number; startTime: string; endTime: string; role?: string }[]) => {
     if (!userId || entries.length === 0) return;
     const rows = entries.map(e => ({
       user_id: userId,
@@ -47,11 +48,12 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
       day_index: e.dayIndex,
       start_time: e.startTime,
       end_time: e.endTime,
+      role: e.role || null,
     }));
     const { data, error } = await supabase
       .from("planning_slots")
       .insert(rows)
-      .select("id, employee_id, week_key, day_index, start_time, end_time");
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role");
     if (!error && data) setSlots(prev => [...prev, ...data]);
   };
 

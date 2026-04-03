@@ -17,6 +17,16 @@ const fmtDate = (d) => { if (!d) return "—"; const [y,m,j] = d.split("-"); ret
 const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "", photo_url: "" });
 
 const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const ROLES = [
+  { label: "Runner", color: "#2563eb" },
+  { label: "Chef de salle", color: "#7c3aed" },
+  { label: "Cuisinier", color: "#dc2626" },
+  { label: "Barman", color: "#d97706" },
+  { label: "Plongeur", color: "#0891b2" },
+  { label: "Serveur", color: "#16a34a" },
+];
+const ROLE_COLOR_MAP = Object.fromEntries(ROLES.map(r => [r.label, r.color]));
+const getRoleColor = (role) => ROLE_COLOR_MAP[role] || "#888";
 const SLOT_COLORS = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#BA7517"];
 
 const fmtShort = (d) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
@@ -607,13 +617,27 @@ function SlotModal({ modal, dates, slotForm, setSlotForm, onConfirm, onCancel })
       <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e5e5", padding: "2rem", width: 360, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
         <h3 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700, color: "#111" }}>Ajouter un créneau</h3>
         <p style={{ margin: "0 0 24px", fontSize: 13, color: "#888" }}>{modal.empName} · {DAYS[modal.dayIdx]} {fmtShort(dates[modal.dayIdx])}</p>
-        <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
+        <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
           {[["start","🕐 Début"],["end","🕐 Fin"]].map(([k, l]) => (
             <div key={k} style={{ flex: 1 }}>
               <label style={{ fontSize: 13, fontWeight: 500, color: "#444", display: "block", marginBottom: 8 }}>{l}</label>
               <input type="time" value={slotForm[k]} onChange={e => setSlotForm({ ...slotForm, [k]: e.target.value })} style={{ width: "100%", padding: "12px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 22, fontWeight: 700, textAlign: "center", boxSizing: "border-box", cursor: "pointer" }} />
             </div>
           ))}
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 13, fontWeight: 500, color: "#444", display: "block", marginBottom: 8 }}>🎯 Rôle</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {ROLES.map(r => {
+              const selected = slotForm.role === r.label;
+              return (
+                <button key={r.label} onClick={() => setSlotForm({ ...slotForm, role: selected ? "" : r.label })}
+                  style={{ padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: selected ? r.color : "white", color: selected ? "white" : r.color, border: `1.5px solid ${r.color}`, cursor: "pointer", transition: "all 0.15s" }}>
+                  {r.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div style={{ background: "#f5f5f5", borderRadius: 8, padding: "10px 14px", marginBottom: 20, textAlign: "center" }}>
           <span style={{ fontSize: 15, fontWeight: 500, color: "#333" }}>
@@ -651,7 +675,7 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
   const [calOpen, setCalOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [modal, setModal] = useState(null);
-  const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [] });
+  const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [], role: "" });
 
   function calcSlotMinutes(start, end) {
     const [sh, sm] = start.split(":").map(Number);
@@ -675,9 +699,9 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
   async function addSlot() {
     if (!modal) return;
     const { empId, dayIdx } = modal;
-    const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end }];
+    const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined }];
     (slotForm.copyDays || []).forEach(di => {
-      entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end });
+      entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined });
     });
     await addSlots(entries);
     setModal(null);
@@ -717,13 +741,19 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
                   const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
                   return (
                     <td key={dayIdx} style={{ padding: "4px", verticalAlign: "top", borderLeft: "1px solid #f0f0f0" }}>
-                      {daySlots.map(s => (
-                        <div key={s.id} style={{ background: SLOT_COLORS[ei % SLOT_COLORS.length] + "22", border: `1px solid ${SLOT_COLORS[ei % SLOT_COLORS.length]}`, borderRadius: 4, padding: "2px 4px", marginBottom: 2, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                          <span>{s.start_time}–{s.end_time}</span>
-                          <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
-                        </div>
-                      ))}
-                      <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [] }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
+                      {daySlots.map(s => {
+                        const slotColor = s.role ? getRoleColor(s.role) : SLOT_COLORS[ei % SLOT_COLORS.length];
+                        return (
+                          <div key={s.id} style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}`, borderRadius: 6, padding: "3px 5px", marginBottom: 2, fontSize: 11, display: "flex", flexDirection: "column", gap: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                              <span style={{ fontWeight: 500 }}>{s.start_time}–{s.end_time}</span>
+                              <span onClick={() => deleteSlot(s.id)} style={{ cursor: "pointer", color: "#aaa", fontSize: 10 }}>✕</span>
+                            </div>
+                            {s.role && <span style={{ fontSize: 10, fontWeight: 600, color: slotColor }}>{s.role}</span>}
+                          </div>
+                        );
+                      })}
+                      <div onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" }); }} style={{ fontSize: 11, color: "#bbb", cursor: "pointer", textAlign: "center", padding: "2px 0" }}>+ ajouter</div>
                     </td>
                   );
                 })}

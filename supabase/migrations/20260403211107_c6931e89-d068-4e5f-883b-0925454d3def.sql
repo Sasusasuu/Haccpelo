@@ -1,0 +1,1 @@
+ALTER TABLE public.planning_slots ADD COLUMN role TEXT DEFAULT NULL;

@@ -140,6 +140,7 @@ export type Database = {
           employee_id: string
           end_time: string
           id: string
+          role: string | null
           start_time: string
           user_id: string
           week_key: string
@@ -150,6 +151,7 @@ export type Database = {
           employee_id: string
           end_time: string
           id?: string
+          role?: string | null
           start_time: string
           user_id: string
           week_key: string
@@ -160,6 +162,7 @@ export type Database = {
           employee_id?: string
           end_time?: string
           id?: string
+          role?: string | null
           start_time?: string
           user_id?: string
           week_key?: string
