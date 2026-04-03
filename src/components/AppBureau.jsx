@@ -5,6 +5,7 @@ import { usePlanningSlots } from "@/hooks/usePlanningSlots";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useSettings } from "@/hooks/useSettings";
 import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
+import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 
 // ─── CONSTANTS ───
 const CATEGORIES = ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"];
