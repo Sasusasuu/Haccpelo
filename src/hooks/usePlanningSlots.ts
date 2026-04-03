@@ -8,6 +8,7 @@ export interface PlanningSlot {
   day_index: number;
   start_time: string;
   end_time: string;
+  role: string | null;
 }
 
 export function usePlanningSlots(userId: string | undefined, weekKey: string) {
