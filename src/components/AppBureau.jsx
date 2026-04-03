@@ -697,17 +697,6 @@ function PlanningTab({ dates, weekOffset, setWeekOffset, weekKey, slots, addSlot
     return result;
   }, [slots, employees]);
 
-  // Month data for monthly view
-  const monthWeeks = useMemo(() => {
-    if (viewMode !== "mois") return [];
-    const weeks = [];
-    for (let i = -2; i <= 2; i++) {
-      const wDates = getWeekDates(weekOffset + i);
-      weeks.push({ dates: wDates, weekKey: makeWeekKey(wDates), offset: weekOffset + i });
-    }
-    return weeks;
-  }, [weekOffset, viewMode]);
-
   async function addSlot() {
     if (!modal) return;
     const { empId, dayIdx } = modal;
