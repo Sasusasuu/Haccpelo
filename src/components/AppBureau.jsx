@@ -1251,20 +1251,36 @@ function NettoyageModule({ userId }) {
 }
 
 // ══ PARAMÈTRES HACCP (protégé par PIN) ══
-function HACCPParametresTab({ userId }) {
+function HACCPParametresTab({ userId, equipmentsList, addEquipment, updateEquipment, deleteEquipment, cleaningTasks, addCleaningTask, deleteCleaningTask }) {
   const { verifyPin, changePin } = useSettings(userId);
   const [unlocked, setUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState(false);
   const [newPin, setNewPin] = useState("");
+  // Equipment form
+  const [newEquipName, setNewEquipName] = useState("");
+  const [newEquipType, setNewEquipType] = useState("frigo");
+  const [editEquipId, setEditEquipId] = useState(null);
+  const [editEquipName, setEditEquipName] = useState("");
+  const [editEquipType, setEditEquipType] = useState("frigo");
+  // Cleaning form
+  const [newTaskZone, setNewTaskZone] = useState("");
+  const [newTaskName, setNewTaskName] = useState("");
+  const [newTaskFreq, setNewTaskFreq] = useState("quotidien");
 
   function tryUnlock() {
     if (verifyPin(pin)) { setUnlocked(true); setPin(""); setPinError(false); }
     else { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 1500); }
   }
 
+  const cleaningZones = useMemo(() => {
+    const z = {};
+    cleaningTasks.forEach(t => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
+    return z;
+  }, [cleaningTasks]);
+
   return (
-    <div style={{ maxWidth: 440 }}>
+    <div style={{ maxWidth: 540 }}>
       {!unlocked ? (
         <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.5rem" }}>
           <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager requis</p>
@@ -1277,6 +1293,7 @@ function HACCPParametresTab({ userId }) {
         </div>
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
+          {/* Code manager */}
           <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
             <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Code manager HACCP</p>
             <div style={{ display: "flex", gap: 8 }}>
@@ -1284,24 +1301,76 @@ function HACCPParametresTab({ userId }) {
               <button onClick={async () => { if (newPin.length === 4) { await changePin(newPin); setNewPin(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #86efac", background: "#dcfce7", color: "#16a34a", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Enregistrer</button>
             </div>
           </div>
+
+          {/* Équipements (frigos/congélateurs) */}
           <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
-            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Seuils de température</p>
-            <div style={{ fontSize: 13, color: "#555", lineHeight: 1.7 }}>
-              <div>🧊 <strong>Réfrigérateurs :</strong> 0°C à +3°C (max +5°C)</div>
-              <div>❄️ <strong>Congélateurs :</strong> -18°C ou moins</div>
-              <div>🥩 <strong>Viandes fraîches :</strong> +2°C à +4°C</div>
-              <div>🐟 <strong>Poissons frais :</strong> 0°C à +2°C</div>
+            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>🌡️ Équipements (frigos / congélateurs)</p>
+            <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+              {equipmentsList.map(eq => (
+                <div key={eq.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: "#fafafa", borderRadius: 8 }}>
+                  {editEquipId === eq.id ? (
+                    <>
+                      <input value={editEquipName} onChange={e => setEditEquipName(e.target.value)} style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: "1px solid #d0d0d0", fontSize: 13, background: "white", color: "#111" }} />
+                      <select value={editEquipType} onChange={e => setEditEquipType(e.target.value)} style={{ padding: "5px 6px", borderRadius: 6, border: "1px solid #d0d0d0", fontSize: 12, background: "white", color: "#111" }}>
+                        <option value="frigo">🧊 Frigo</option>
+                        <option value="congelateur">❄️ Congélateur</option>
+                      </select>
+                      <button onClick={async () => { await updateEquipment(eq.id, editEquipName, editEquipType); setEditEquipId(null); }} style={{ ...btnP, padding: "5px 10px", fontSize: 11, background: "#16a34a" }}>✓</button>
+                      <button onClick={() => setEditEquipId(null)} style={{ ...btnS, padding: "5px 8px", fontSize: 11 }}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 13, flex: 1 }}>{eq.equipment_type === "congelateur" ? "❄️" : "🧊"} {eq.name}</span>
+                      <button onClick={() => { setEditEquipId(eq.id); setEditEquipName(eq.name); setEditEquipType(eq.equipment_type); }} style={{ ...btnS, padding: "4px 8px", fontSize: 11 }}>Modifier</button>
+                      <span onClick={() => deleteEquipment(eq.id)} style={{ fontSize: 12, color: "#dc2626", cursor: "pointer" }}>Supprimer</span>
+                    </>
+                  )}
+                </div>
+              ))}
+              {equipmentsList.length === 0 && <div style={{ fontSize: 13, color: "#888", padding: 8 }}>Aucun équipement configuré</div>}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={newEquipName} onChange={e => setNewEquipName(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newEquipName.trim()) { addEquipment(newEquipName.trim(), newEquipType); setNewEquipName(""); } }} placeholder="Nom (ex: Frigo cuisine)" style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 13 }} />
+              <select value={newEquipType} onChange={e => setNewEquipType(e.target.value)} style={{ padding: "7px 8px", borderRadius: 8, border: "1px solid #d0d0d0", fontSize: 13, background: "white", color: "#111" }}>
+                <option value="frigo">🧊 Frigo</option>
+                <option value="congelateur">❄️ Congélateur</option>
+              </select>
+              <button onClick={async () => { if (newEquipName.trim()) { await addEquipment(newEquipName.trim(), newEquipType); setNewEquipName(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter</button>
             </div>
           </div>
+
+          {/* Plan de nettoyage */}
           <div style={{ background: "white", border: "1px solid #e5e5e5", borderRadius: 10, padding: "1.25rem" }}>
-            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>Normes DLC</p>
-            <div style={{ fontSize: 13, color: "#555", lineHeight: 1.7 }}>
-              <div>🥩 <strong>Viandes fraîches :</strong> DLC 3 à 5 jours après ouverture</div>
-              <div>🐟 <strong>Poissons frais :</strong> DLC 1 à 2 jours max</div>
-              <div>🥗 <strong>Préparations maison :</strong> DLC J+3 max (72h)</div>
-              <div>❄️ <strong>Produits décongelés :</strong> Consommer dans les 24h</div>
+            <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 600 }}>🧹 Plan de nettoyage</p>
+            <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+              {Object.entries(cleaningZones).map(([zone, tasks]) => (
+                <div key={zone}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{zone}</div>
+                  {tasks.map(task => (
+                    <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#fafafa", borderRadius: 6, marginBottom: 3 }}>
+                      <span style={{ fontSize: 13, flex: 1 }}>{task.task_name}</span>
+                      <span style={{ fontSize: 11, color: "#888" }}>{task.frequency === "quotidien" ? "🔄 Quotidien" : task.frequency === "hebdomadaire" ? "📅 Hebdo" : "🗓 Mensuel"}</span>
+                      <span onClick={() => deleteCleaningTask(task.id)} style={{ fontSize: 12, color: "#dc2626", cursor: "pointer" }}>Supprimer</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {cleaningTasks.length === 0 && <div style={{ fontSize: 13, color: "#888", padding: 8 }}>Aucune tâche de nettoyage</div>}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <input value={newTaskZone} onChange={e => setNewTaskZone(e.target.value)} placeholder="Zone (ex: Cuisine)" style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 13 }} />
+              <input value={newTaskName} onChange={e => setNewTaskName(e.target.value)} placeholder="Tâche (ex: Nettoyer sols)" style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #d0d0d0", background: "white", color: "#111", fontSize: 13 }} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select value={newTaskFreq} onChange={e => setNewTaskFreq(e.target.value)} style={{ padding: "7px 8px", borderRadius: 8, border: "1px solid #d0d0d0", fontSize: 13, background: "white", color: "#111" }}>
+                <option value="quotidien">Quotidien</option>
+                <option value="hebdomadaire">Hebdomadaire</option>
+                <option value="mensuel">Mensuel</option>
+              </select>
+              <button onClick={async () => { if (newTaskZone.trim() && newTaskName.trim()) { await addCleaningTask({ zone: newTaskZone.trim(), task_name: newTaskName.trim(), frequency: newTaskFreq }); setNewTaskZone(""); setNewTaskName(""); } }} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #BFDBFE", background: "#EFF6FF", color: "#1D4ED8", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Ajouter tâche</button>
             </div>
           </div>
+
           <button onClick={() => setUnlocked(false)} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#888", cursor: "pointer", fontSize: 13 }}>Verrouiller les paramètres</button>
         </div>
       )}
@@ -1312,6 +1381,9 @@ function HACCPParametresTab({ userId }) {
 // ══ MODULE HACCP (regroupe DLC + Températures + Nettoyage + Paramètres) ══
 function HACCPModule({ userId }) {
   const [subTab, setSubTab] = useState("dlc");
+  const { equipments: equipmentsList, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
+  const { tasks: cleaningTasks, logs: cleaningLogs, addTask: addCleaningTask, deleteTask: deleteCleaningTask, logDone: logCleaningDone, deleteLog: deleteCleaningLog } = useCleaningPlan(userId);
+
   const subBtnStyle = (active) => ({
     padding: "6px 16px", borderRadius: 8, fontSize: 13,
     background: active ? "#EFF6FF" : "white",
@@ -1328,9 +1400,9 @@ function HACCPModule({ userId }) {
         <button onClick={() => setSubTab("parametres")} style={subBtnStyle(subTab === "parametres")}>⚙️ Paramètres</button>
       </div>
       {subTab === "dlc" && <DLCModule userId={userId} />}
-      {subTab === "temperatures" && <TemperaturesModule userId={userId} />}
-      {subTab === "nettoyage" && <NettoyageModule userId={userId} />}
-      {subTab === "parametres" && <HACCPParametresTab userId={userId} />}
+      {subTab === "temperatures" && <TemperaturesModule userId={userId} equipmentsList={equipmentsList} />}
+      {subTab === "nettoyage" && <NettoyageModule userId={userId} cleaningTasks={cleaningTasks} cleaningLogs={cleaningLogs} logCleaningDone={logCleaningDone} deleteCleaningLog={deleteCleaningLog} />}
+      {subTab === "parametres" && <HACCPParametresTab userId={userId} equipmentsList={equipmentsList} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />}
     </div>
   );
 }
