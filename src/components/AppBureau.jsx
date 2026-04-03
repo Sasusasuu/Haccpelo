@@ -108,6 +108,24 @@ function DLCModule({ userId }) {
           <button style={btnP} onClick={() => { setForm(makeDefaultForm()); setEditId(null); setView("ajouter"); }}>+ Ajouter</button>
         </div>
       )}
+      {showNormesDLC && view !== "etiquette" && (
+        <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: 13, color: "#1e3a5f", lineHeight: 1.7 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>📏 Normes DLC réglementaires (HACCP)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 20px" }}>
+            <div><strong>🥩 Viandes fraîches :</strong></div><div>DLC 3 à 5 jours après ouverture</div>
+            <div><strong>🐟 Poissons frais :</strong></div><div>DLC 1 à 2 jours max</div>
+            <div><strong>🥛 Produits laitiers :</strong></div><div>DLC indiquée sur l'emballage, 2-3 jours après ouverture</div>
+            <div><strong>🥗 Préparations maison :</strong></div><div>DLC J+3 max (72h)</div>
+            <div><strong>🍖 Charcuterie :</strong></div><div>DLC 3 à 5 jours après ouverture</div>
+            <div><strong>🥬 Légumes coupés :</strong></div><div>DLC J+3 max</div>
+            <div><strong>❄️ Produits décongelés :</strong></div><div>Consommer dans les 24h — NE PAS recongeler</div>
+            <div><strong>🍳 Plats cuisinés (refroidis) :</strong></div><div>DLC J+3, refroidir de +63°C à +10°C en 2h max</div>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
+            ⚠️ La DLC secondaire (après ouverture) prime toujours sur la DLC fabricant. Toute denrée dont la DLC est dépassée doit être jetée immédiatement.
+          </div>
+        </div>
+      )}
       {view === "liste" && (
         <DLCListView
           filtered={filtered} produits={produits} nbAlerte={nbAlerte}
