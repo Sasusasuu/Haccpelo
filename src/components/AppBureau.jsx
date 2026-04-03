@@ -105,6 +105,7 @@ function DLCModule({ userId }) {
         <DLCAddForm form={form} setForm={setForm} editId={editId}
           onSubmit={handleSubmit}
           onCancel={() => { setView("liste"); setEditId(null); setForm(makeDefaultForm()); }}
+          uploadPhoto={uploadPhoto}
         />
       )}
       {view === "etiquette" && etiquette && <EtiquetteView etiquette={etiquette} onBack={() => setView("liste")} />}
