@@ -1024,13 +1024,18 @@ function PointeuseTab({ employees, entries, clockIn, clockOut, verifyPin }) {
   );
 }
 
-function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee, verifyPin, changePin, onSignOut }) {
+function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee, verifyPin, changePin, onSignOut, roles, addRole, updateRole, deleteRole }) {
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [newEmp, setNewEmp] = useState("");
   const [pinEntryError, setPinEntryError] = useState(false);
   const [showRegistre, setShowRegistre] = useState(false);
+  const [newRoleLabel, setNewRoleLabel] = useState("");
+  const [newRoleColor, setNewRoleColor] = useState("#2563eb");
+  const [editRoleId, setEditRoleId] = useState(null);
+  const [editRoleLabel, setEditRoleLabel] = useState("");
+  const [editRoleColor, setEditRoleColor] = useState("");
 
   function tryUnlock() {
     if (verifyPin(settingsPin)) { setSettingsUnlocked(true); setSettingsPin(""); setPinEntryError(false); }
