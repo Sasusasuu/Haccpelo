@@ -58,6 +58,8 @@ function DLCModule({ userId }) {
   const [filtre, setFiltre] = useState("tous");
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showNormesDLC, setShowNormesDLC] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
@@ -94,11 +96,34 @@ function DLCModule({ userId }) {
   return (
     <div>
       {view !== "etiquette" && (
-        <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>
-            Produits {nbAlerte > 0 && <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: 12, fontWeight: 500, padding: "2px 9px", borderRadius: 20, marginLeft: 8 }}>{nbAlerte} alerte{nbAlerte > 1 ? "s" : ""}</span>}
+        <div className="no-print" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 500, color: "#111" }}>
+              Produits {nbAlerte > 0 && <span style={{ background: "#fee2e2", color: "#dc2626", fontSize: 12, fontWeight: 500, padding: "2px 9px", borderRadius: 20, marginLeft: 8 }}>{nbAlerte} alerte{nbAlerte > 1 ? "s" : ""}</span>}
+            </span>
+            <button onClick={() => setShowNormesDLC(v => !v)} style={{ ...btnS, padding: "4px 10px", fontSize: 11, background: showNormesDLC ? "#EFF6FF" : "white", color: showNormesDLC ? "#1D4ED8" : "#555", border: showNormesDLC ? "1.5px solid #BFDBFE" : "1px solid #d0d0d0" }}>
+              📏 Normes DLC
+            </button>
           </div>
           <button style={btnP} onClick={() => { setForm(makeDefaultForm()); setEditId(null); setView("ajouter"); }}>+ Ajouter</button>
+        </div>
+      )}
+      {showNormesDLC && view !== "etiquette" && (
+        <div style={{ background: "#f0f7ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: 13, color: "#1e3a5f", lineHeight: 1.7 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>📏 Normes DLC réglementaires (HACCP)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 20px" }}>
+            <div><strong>🥩 Viandes fraîches :</strong></div><div>DLC 3 à 5 jours après ouverture</div>
+            <div><strong>🐟 Poissons frais :</strong></div><div>DLC 1 à 2 jours max</div>
+            <div><strong>🥛 Produits laitiers :</strong></div><div>DLC indiquée sur l'emballage, 2-3 jours après ouverture</div>
+            <div><strong>🥗 Préparations maison :</strong></div><div>DLC J+3 max (72h)</div>
+            <div><strong>🍖 Charcuterie :</strong></div><div>DLC 3 à 5 jours après ouverture</div>
+            <div><strong>🥬 Légumes coupés :</strong></div><div>DLC J+3 max</div>
+            <div><strong>❄️ Produits décongelés :</strong></div><div>Consommer dans les 24h — NE PAS recongeler</div>
+            <div><strong>🍳 Plats cuisinés (refroidis) :</strong></div><div>DLC J+3, refroidir de +63°C à +10°C en 2h max</div>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
+            ⚠️ La DLC secondaire (après ouverture) prime toujours sur la DLC fabricant. Toute denrée dont la DLC est dépassée doit être jetée immédiatement.
+          </div>
         </div>
       )}
       {view === "liste" && (
