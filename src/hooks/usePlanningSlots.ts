@@ -39,7 +39,7 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
     return data;
   };
 
-  const addSlots = async (entries: { employeeId: string; dayIndex: number; startTime: string; endTime: string }[]) => {
+  const addSlots = async (entries: { employeeId: string; dayIndex: number; startTime: string; endTime: string; role?: string }[]) => {
     if (!userId || entries.length === 0) return;
     const rows = entries.map(e => ({
       user_id: userId,
@@ -48,11 +48,12 @@ export function usePlanningSlots(userId: string | undefined, weekKey: string) {
       day_index: e.dayIndex,
       start_time: e.startTime,
       end_time: e.endTime,
+      role: e.role || null,
     }));
     const { data, error } = await supabase
       .from("planning_slots")
       .insert(rows)
-      .select("id, employee_id, week_key, day_index, start_time, end_time");
+      .select("id, employee_id, week_key, day_index, start_time, end_time, role");
     if (!error && data) setSlots(prev => [...prev, ...data]);
   };
 
