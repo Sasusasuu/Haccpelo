@@ -947,13 +947,9 @@ function ParametresTab({ employees, addEmployee, updateEmployee, deleteEmployee,
 }
 
 // ══ MODULE TEMPÉRATURES ══
-const DEFAULT_EQUIPMENTS = ["Frigo 1", "Frigo 2", "Congélateur 1", "Congélateur 2"];
-
-function TemperaturesModule({ userId }) {
+function TemperaturesModule({ userId, equipmentsList }) {
   const { logs, addLog, deleteLog } = useTemperatureLogs(userId);
   const [selectedDate, setSelectedDate] = useState(todayStr());
-  const [equipments, setEquipments] = useState(DEFAULT_EQUIPMENTS);
-  const [newEquip, setNewEquip] = useState("");
   const [temps, setTemps] = useState({});
 
   const logsForDate = useMemo(() => logs.filter(l => l.log_date === selectedDate), [logs, selectedDate]);
@@ -971,25 +967,8 @@ function TemperaturesModule({ userId }) {
     setTemps(prev => { const n = { ...prev }; delete n[key]; return n; });
   };
 
-  const addEquipment = () => {
-    const name = newEquip.trim();
-    if (name && !equipments.includes(name)) {
-      setEquipments(prev => [...prev, name]);
-      setNewEquip("");
-    }
-  };
-
-  // Collect unique equipment names from existing logs
-  useEffect(() => {
-    const fromLogs = [...new Set(logs.map(l => l.equipment_name))];
-    setEquipments(prev => {
-      const merged = [...new Set([...prev, ...fromLogs])];
-      return merged;
-    });
-  }, [logs]);
-
   const tempColor = (temp, equip) => {
-    const isCongel = equip.toLowerCase().includes("congél") || equip.toLowerCase().includes("congel");
+    const isCongel = equip.equipment_type === "congelateur";
     if (isCongel) {
       if (temp > -15) return { bg: "#fee2e2", color: "#dc2626" };
       if (temp > -18) return { bg: "#fef9c3", color: "#92400e" };
@@ -1000,7 +979,6 @@ function TemperaturesModule({ userId }) {
     return { bg: "#dcfce7", color: "#16a34a" };
   };
 
-  // Get dates that have logs for navigation
   const uniqueDates = useMemo(() => [...new Set(logs.map(l => l.log_date))].sort().reverse(), [logs]);
 
   const [showNormes, setShowNormes] = useState(false);
@@ -1035,78 +1013,72 @@ function TemperaturesModule({ userId }) {
         </div>
       )}
 
-      <div style={{ border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ background: "#fafafa", borderBottom: "1px solid #e5e5e5" }}>
-              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#888" }}>Équipement</th>
-              <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 500, fontSize: 12, color: "#888" }}>☀️ Matin</th>
-              <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 500, fontSize: 12, color: "#888" }}>🌙 Soir</th>
-            </tr>
-          </thead>
-          <tbody>
-            {equipments.map((equip, i) => (
-              <tr key={equip} style={{ borderBottom: i < equipments.length - 1 ? "1px solid #f0f0f0" : "none" }}>
-                <td style={{ padding: "10px 12px", fontWeight: 500 }}>
-                  {equip.toLowerCase().includes("congél") || equip.toLowerCase().includes("congel") ? "❄️" : "🧊"} {equip}
-                </td>
-                {["matin", "soir"].map(period => {
-                  const existing = getExisting(equip, period);
-                  const key = getTempKey(equip, period);
-                  return (
-                    <td key={period} style={{ padding: "8px 12px", textAlign: "center" }}>
-                      {existing ? (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                          <span style={{
-                            ...tempColor(existing.temperature, equip),
-                            padding: "3px 10px",
-                            borderRadius: 20,
-                            fontSize: 14,
-                            fontWeight: 600,
-                            fontFamily: "monospace",
-                          }}>
-                            {existing.temperature > 0 ? "+" : ""}{existing.temperature}°C
-                          </span>
-                          <button onClick={() => deleteLog(existing.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#aaa" }} title="Supprimer">✕</button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={temps[key] ?? ""}
-                            onChange={e => setTemps(prev => ({ ...prev, [key]: e.target.value }))}
-                            onKeyDown={e => { if (e.key === "Enter") handleSave(equip, period); }}
-                            placeholder="°C"
-                            style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #d0d0d0", textAlign: "center", fontSize: 14, background: "white", color: "#111" }}
-                          />
-                          <button
-                            onClick={() => handleSave(equip, period)}
-                            disabled={!temps[key] && temps[key] !== 0}
-                            style={{ ...btnP, padding: "6px 10px", fontSize: 11, opacity: temps[key] !== undefined && temps[key] !== "" ? 1 : 0.4 }}
-                          >✓</button>
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
+      {equipmentsList.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "3rem 0", color: "#888", fontSize: 14 }}>
+          Aucun équipement configuré — allez dans <strong>⚙️ Paramètres</strong> pour ajouter des frigos/congélateurs.
+        </div>
+      ) : (
+        <div style={{ border: "1px solid #e5e5e5", borderRadius: 10, overflow: "hidden", marginBottom: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: "#fafafa", borderBottom: "1px solid #e5e5e5" }}>
+                <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 500, fontSize: 12, color: "#888" }}>Équipement</th>
+                <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 500, fontSize: 12, color: "#888" }}>☀️ Matin</th>
+                <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 500, fontSize: 12, color: "#888" }}>🌙 Soir</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Add equipment */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <input
-          value={newEquip}
-          onChange={e => setNewEquip(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") addEquipment(); }}
-          placeholder="Ajouter un équipement (ex: Frigo 3)"
-          style={{ ...inp, maxWidth: 280 }}
-        />
-        <button onClick={addEquipment} disabled={!newEquip.trim()} style={{ ...btnS, fontSize: 13, opacity: newEquip.trim() ? 1 : 0.5 }}>+ Ajouter</button>
-      </div>
+            </thead>
+            <tbody>
+              {equipmentsList.map((equip, i) => (
+                <tr key={equip.id} style={{ borderBottom: i < equipmentsList.length - 1 ? "1px solid #f0f0f0" : "none" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 500 }}>
+                    {equip.equipment_type === "congelateur" ? "❄️" : "🧊"} {equip.name}
+                  </td>
+                  {["matin", "soir"].map(period => {
+                    const existing = getExisting(equip.name, period);
+                    const key = getTempKey(equip.name, period);
+                    return (
+                      <td key={period} style={{ padding: "8px 12px", textAlign: "center" }}>
+                        {existing ? (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                            <span style={{
+                              ...tempColor(existing.temperature, equip),
+                              padding: "3px 10px",
+                              borderRadius: 20,
+                              fontSize: 14,
+                              fontWeight: 600,
+                              fontFamily: "monospace",
+                            }}>
+                              {existing.temperature > 0 ? "+" : ""}{existing.temperature}°C
+                            </span>
+                            <button onClick={() => deleteLog(existing.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#aaa" }} title="Supprimer">✕</button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={temps[key] ?? ""}
+                              onChange={e => setTemps(prev => ({ ...prev, [key]: e.target.value }))}
+                              onKeyDown={e => { if (e.key === "Enter") handleSave(equip.name, period); }}
+                              placeholder="°C"
+                              style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #d0d0d0", textAlign: "center", fontSize: 14, background: "white", color: "#111" }}
+                            />
+                            <button
+                              onClick={() => handleSave(equip.name, period)}
+                              disabled={!temps[key] && temps[key] !== 0}
+                              style={{ ...btnP, padding: "6px 10px", fontSize: 11, opacity: temps[key] !== undefined && temps[key] !== "" ? 1 : 0.4 }}
+                            >✓</button>
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Historique */}
       {uniqueDates.length > 0 && (
@@ -1127,7 +1099,6 @@ function TemperaturesModule({ userId }) {
     </div>
   );
 }
-
 // ══ MODULE PLAN DE NETTOYAGE ══
 const DEFAULT_ZONES = [
   { zone: "Cuisine", tasks: ["Nettoyer les plans de travail", "Dégraisser la hotte", "Nettoyer les sols"] },
