@@ -7,6 +7,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useEquipments } from "@/hooks/useEquipments";
+import { useCustomRoles } from "@/hooks/useCustomRoles";
 
 // ─── CONSTANTS ───
 const CATEGORIES = ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"];
@@ -17,17 +18,9 @@ const fmtDate = (d) => { if (!d) return "—"; const [y,m,j] = d.split("-"); ret
 const makeDefaultForm = () => ({ nom: "", categorie: "Viande", fab: todayStr(), dlc: todayStr(), quantite: "", photo_url: "" });
 
 const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
-const ROLES = [
-  { label: "Runner", color: "#2563eb" },
-  { label: "Chef de salle", color: "#7c3aed" },
-  { label: "Cuisinier", color: "#dc2626" },
-  { label: "Barman", color: "#d97706" },
-  { label: "Plongeur", color: "#0891b2" },
-  { label: "Serveur", color: "#16a34a" },
-];
-const ROLE_COLOR_MAP = Object.fromEntries(ROLES.map(r => [r.label, r.color]));
-const getRoleColor = (role) => ROLE_COLOR_MAP[role] || "#888";
+const getRoleColor = (role, roles) => { const found = roles.find(r => r.label === role); return found ? found.color : "#888"; };
 const SLOT_COLORS = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#BA7517"];
+const PRESET_COLORS = ["#2563eb","#7c3aed","#dc2626","#d97706","#0891b2","#16a34a","#e11d48","#7c2d12","#4338ca","#065f46"];
 
 const fmtShort = (d) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 const fmtTime = (ts) => { if (!ts) return "--:--"; return new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); };
