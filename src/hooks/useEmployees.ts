@@ -5,6 +5,7 @@ export interface Employee {
   id: string;
   name: string;
   contract_hours: number | null;
+  meal_type: string | null;
 }
 
 export function useEmployees(userId: string | undefined) {
@@ -15,7 +16,7 @@ export function useEmployees(userId: string | undefined) {
     if (!userId) return;
     const { data, error } = await supabase
       .from("employees")
-      .select("id, name, contract_hours")
+      .select("id, name, contract_hours, meal_type")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
     if (!error && data) setEmployees(data);
@@ -29,12 +30,12 @@ export function useEmployees(userId: string | undefined) {
     const { data, error } = await supabase
       .from("employees")
       .insert({ user_id: userId, name, contract_hours: contractHours ?? null })
-      .select("id, name, contract_hours")
+      .select("id, name, contract_hours, meal_type")
       .single();
     if (!error && data) setEmployees(prev => [...prev, data]);
   };
 
-  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours">>) => {
+  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type">>) => {
     if (!userId) return;
     const { error } = await supabase
       .from("employees")
