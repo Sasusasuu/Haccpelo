@@ -219,10 +219,10 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
             </p>
             <div className="space-y-1.5">
               <Label>Rôle</Label>
-              <Select value={slotForm.role} onValueChange={v => setSlotForm({ ...slotForm, role: v })}>
+              <Select value={slotForm.role || "__none__"} onValueChange={v => setSlotForm({ ...slotForm, role: v === "__none__" ? "" : v })}>
                 <SelectTrigger><SelectValue placeholder="Aucun rôle" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value="__none__">Aucun</SelectItem>
                   {roles.map((r: any) => (
                     <SelectItem key={r.id} value={r.label}>
                       <div className="flex items-center gap-2">
