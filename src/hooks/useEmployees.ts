@@ -30,7 +30,7 @@ export function useEmployees(userId: string | undefined) {
     const { data, error } = await supabase
       .from("employees")
       .insert({ user_id: userId, name, contract_hours: contractHours ?? null })
-      .select("id, name, contract_hours")
+      .select("id, name, contract_hours, meal_type")
       .single();
     if (!error && data) setEmployees(prev => [...prev, data]);
   };
