@@ -35,7 +35,7 @@ export function useEmployees(userId: string | undefined) {
     if (!error && data) setEmployees(prev => [...prev, data]);
   };
 
-  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours">>) => {
+  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type">>) => {
     if (!userId) return;
     const { error } = await supabase
       .from("employees")
