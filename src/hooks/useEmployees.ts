@@ -5,6 +5,7 @@ export interface Employee {
   id: string;
   name: string;
   contract_hours: number | null;
+  meal_type: string | null;
 }
 
 export function useEmployees(userId: string | undefined) {
