@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Lock, Plus, Pencil, Trash2, X, Check, Users, LogOut, Eye, EyeOff, Download } from "lucide-react";
-import { PRESET_COLORS, DAYS, calcSlotMinutes, fmtShort, getWeekDates, makeWeekKey } from "@/lib/constants";
+import { DAYS, calcSlotMinutes } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
