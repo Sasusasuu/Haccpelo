@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN meal_type text DEFAULT NULL;
