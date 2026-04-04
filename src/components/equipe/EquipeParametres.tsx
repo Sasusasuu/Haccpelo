@@ -1,8 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSettings } from "@/hooks/useSettings";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
-import { usePlanningSlots } from "@/hooks/usePlanningSlots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
