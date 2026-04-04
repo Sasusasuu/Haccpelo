@@ -16,7 +16,7 @@ export function useEmployees(userId: string | undefined) {
     if (!userId) return;
     const { data, error } = await supabase
       .from("employees")
-      .select("id, name, contract_hours")
+      .select("id, name, contract_hours, meal_type")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
     if (!error && data) setEmployees(data);
