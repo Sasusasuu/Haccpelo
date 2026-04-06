@@ -7,7 +7,7 @@ import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
-import { statusOf, todayStr, diffH, fmtDuration, isTempAlert, DLC_ALERT_DAYS } from "@/lib/constants";
+import { statusOf, todayStr, diffH, fmtDuration, isTempAlert } from "@/lib/constants";
 import { CardSkeleton } from "@/components/ui/loading-skeletons";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import {
