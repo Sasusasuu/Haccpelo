@@ -3,9 +3,8 @@ import { useSettings } from "@/hooks/useSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Plus, Pencil, Trash2, X, Check, Snowflake, Refrigerator } from "lucide-react";
+import { Lock, Plus, Pencil, Trash2, X, Check } from "lucide-react";
 
 interface HACCPParametresProps {
   userId: string;

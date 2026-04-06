@@ -1,27 +1,29 @@
 import { useState, useMemo } from "react";
 import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Thermometer, Info, X, Check } from "lucide-react";
-import { todayStr, fmtDate } from "@/lib/constants";
+import { todayStr, fmtDate, isTempAlert, TEMP_THRESHOLD_FREEZER, TEMP_THRESHOLD_FRIDGE } from "@/lib/constants";
+import { ErrorAlert } from "@/components/ui/error-alert";
+import { TableSkeleton } from "@/components/ui/loading-skeletons";
 
 interface TemperaturesModuleProps {
   userId: string;
-  equipmentsList: any[];
+  equipmentsList: { id: string; name: string; equipment_type: string }[];
 }
 
 export default function TemperaturesModule({ userId, equipmentsList }: TemperaturesModuleProps) {
-  const { logs, addLog, deleteLog } = useTemperatureLogs(userId);
+  const { logs, loading, error, addLog, deleteLog, retry } = useTemperatureLogs(userId);
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [temps, setTemps] = useState<Record<string, string>>({});
   const [showNormes, setShowNormes] = useState(false);
 
-  const logsForDate = useMemo(() => logs.filter((l: any) => l.log_date === selectedDate), [logs, selectedDate]);
-  const getExisting = (equip: string, period: string) => logsForDate.find((l: any) => l.equipment_name === equip && l.period === period);
+  const logsForDate = useMemo(() => logs.filter(l => l.log_date === selectedDate), [logs, selectedDate]);
+  const getExisting = (equip: string, period: string) => logsForDate.find(l => l.equipment_name === equip && l.period === period);
   const getTempKey = (equip: string, period: string) => `${equip}__${period}`;
 
   const handleSave = async (equip: string, period: "matin" | "soir") => {
@@ -34,15 +36,17 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
     setTemps(prev => { const n = { ...prev }; delete n[key]; return n; });
   };
 
-  const tempBadgeVariant = (temp: number, equip: any) => {
+  const tempBadgeVariant = (temp: number, equip: { equipment_type: string }) => {
+    if (isTempAlert(temp, equip.equipment_type)) return "destructive";
     const isCongel = equip.equipment_type === "congelateur";
-    if (isCongel) { if (temp > -15) return "destructive"; if (temp > -18) return "outline"; return "default"; }
-    if (temp > 5) return "destructive";
-    if (temp > 3) return "outline";
+    if (isCongel && temp > -18) return "outline";
+    if (!isCongel && temp > 3) return "outline";
     return "default";
   };
 
-  const uniqueDates = useMemo(() => [...new Set(logs.map((l: any) => l.log_date))].sort().reverse(), [logs]);
+  const uniqueDates = useMemo(() => [...new Set(logs.map(l => l.log_date))].sort().reverse(), [logs]);
+
+  if (error) return <ErrorAlert message={error} onRetry={retry} />;
 
   return (
     <div className="space-y-4">
@@ -64,8 +68,8 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
             <CardContent className="p-4 text-xs space-y-1 leading-relaxed">
               <p className="font-bold text-sm mb-2">📏 Normes réglementaires (HACCP)</p>
               <div className="grid grid-cols-2 gap-1">
-                <div><strong>🧊 Réfrigérateurs :</strong></div><div>0°C à +3°C — max +5°C</div>
-                <div><strong>❄️ Congélateurs :</strong></div><div>-18°C ou moins</div>
+                <div><strong>🧊 Réfrigérateurs :</strong></div><div>0°C à +3°C — max +{TEMP_THRESHOLD_FRIDGE}°C</div>
+                <div><strong>❄️ Congélateurs :</strong></div><div>{TEMP_THRESHOLD_FREEZER}°C ou moins</div>
                 <div><strong>🥩 Viandes fraîches :</strong></div><div>+2°C à +4°C</div>
                 <div><strong>🍳 Plats chauds :</strong></div><div>+63°C minimum</div>
               </div>
@@ -74,7 +78,9 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
         </CollapsibleContent>
       </Collapsible>
 
-      {equipmentsList.length === 0 ? (
+      {loading ? (
+        <TableSkeleton rows={3} cols={3} />
+      ) : equipmentsList.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
           Aucun équipement configuré — allez dans Paramètres HACCP pour en ajouter.
         </CardContent></Card>
@@ -89,7 +95,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
               </TableRow>
             </TableHeader>
             <TableBody>
-              {equipmentsList.map((equip: any) => (
+              {equipmentsList.map((equip) => (
                 <TableRow key={equip.id}>
                   <TableCell className="font-medium">
                     {equip.equipment_type === "congelateur" ? "❄️" : "🧊"} {equip.name}
@@ -101,7 +107,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
                       <TableCell key={period} className="text-center">
                         {existing ? (
                           <div className="flex items-center justify-center gap-2">
-                            <Badge variant={tempBadgeVariant(existing.temperature, equip) as any} className="font-mono">
+                            <Badge variant={tempBadgeVariant(existing.temperature, equip) as "default" | "destructive" | "outline"} className="font-mono">
                               {existing.temperature > 0 ? "+" : ""}{existing.temperature}°C
                             </Badge>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteLog(existing.id)}>

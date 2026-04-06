@@ -10,21 +10,29 @@ function hashPin(pin: string): string {
 export function useSettings(userId: string | undefined) {
   const [managerPinHash, setManagerPinHash] = useState<string>(hashPin("1234"));
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
     if (!userId) return;
-    const { data, error } = await supabase
-      .from("settings")
-      .select("manager_pin_hash")
-      .eq("user_id", userId)
-      .single();
-    if (!error && data?.manager_pin_hash) {
-      setManagerPinHash(data.manager_pin_hash);
-    } else if (error?.code === "PGRST116") {
-      // No settings yet, create with default
-      await supabase.from("settings").insert({ user_id: userId, manager_pin_hash: hashPin("1234") });
+    setError(null);
+    try {
+      const { data, error: dbError } = await supabase
+        .from("settings")
+        .select("manager_pin_hash")
+        .eq("user_id", userId)
+        .single();
+      if (dbError && dbError.code === "PGRST116") {
+        await supabase.from("settings").insert({ user_id: userId, manager_pin_hash: hashPin("1234") });
+      } else if (dbError) {
+        throw dbError;
+      } else if (data?.manager_pin_hash) {
+        setManagerPinHash(data.manager_pin_hash);
+      }
+    } catch {
+      setError("Impossible de charger les paramètres.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [userId]);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
@@ -33,13 +41,18 @@ export function useSettings(userId: string | undefined) {
 
   const changePin = async (newPin: string) => {
     if (!userId) return;
-    const newHash = hashPin(newPin);
-    const { error } = await supabase
-      .from("settings")
-      .update({ manager_pin_hash: newHash })
-      .eq("user_id", userId);
-    if (!error) setManagerPinHash(newHash);
+    try {
+      const newHash = hashPin(newPin);
+      const { error: dbError } = await supabase
+        .from("settings")
+        .update({ manager_pin_hash: newHash })
+        .eq("user_id", userId);
+      if (dbError) throw dbError;
+      setManagerPinHash(newHash);
+    } catch {
+      setError("Impossible de changer le code PIN.");
+    }
   };
 
-  return { verifyPin, changePin, loading };
+  return { verifyPin, changePin, loading, error, retry: fetchSettings };
 }

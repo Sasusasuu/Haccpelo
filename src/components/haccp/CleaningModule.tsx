@@ -6,35 +6,43 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SprayCan, CheckCircle2 } from "lucide-react";
 import { todayStr, fmtDate, FREQUENCIES } from "@/lib/constants";
+import { ErrorAlert } from "@/components/ui/error-alert";
+import { ListSkeleton } from "@/components/ui/loading-skeletons";
 
-interface NettoyageModuleProps {
+interface CleaningModuleProps {
   userId: string;
-  cleaningTasks: any[];
-  cleaningLogs: any[];
+  cleaningTasks: { id: string; zone: string; task_name: string; frequency: string }[];
+  cleaningLogs: { id: string; task_id: string; done_date: string; done_by: string }[];
   logCleaningDone: (taskId: string, doneBy: string) => Promise<void>;
   deleteCleaningLog: (id: string) => Promise<void>;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export default function NettoyageModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone }: NettoyageModuleProps) {
+export default function CleaningModule({ cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone, loading, error, onRetry }: CleaningModuleProps) {
   const [doneBy, setDoneBy] = useState("");
   const [filterFreq, setFilterFreq] = useState("tous");
   const today = todayStr();
 
-  const isTaskDoneToday = (taskId: string) => logs.some((l: any) => l.task_id === taskId && l.done_date === today);
-  const lastDone = (taskId: string) => logs.find((l: any) => l.task_id === taskId);
+  const isTaskDoneToday = (taskId: string) => logs.some(l => l.task_id === taskId && l.done_date === today);
+  const lastDone = (taskId: string) => logs.find(l => l.task_id === taskId);
 
   const filteredTasks = useMemo(() => {
     if (filterFreq === "tous") return tasks;
-    return tasks.filter((t: any) => t.frequency === filterFreq);
+    return tasks.filter(t => t.frequency === filterFreq);
   }, [tasks, filterFreq]);
 
   const filteredZones = useMemo(() => {
-    const z: Record<string, any[]> = {};
-    filteredTasks.forEach((t: any) => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
+    const z: Record<string, typeof tasks> = {};
+    filteredTasks.forEach(t => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
     return z;
   }, [filteredTasks]);
 
-  const doneToday = tasks.filter((t: any) => isTaskDoneToday(t.id)).length;
+  const doneToday = tasks.filter(t => isTaskDoneToday(t.id)).length;
+
+  if (error) return <ErrorAlert message={error} onRetry={onRetry} />;
+  if (loading) return <ListSkeleton rows={5} />;
 
   return (
     <div className="space-y-4">
@@ -70,7 +78,7 @@ export default function NettoyageModule({ userId, cleaningTasks: tasks, cleaning
         Object.entries(filteredZones).map(([zone, zoneTasks]) => (
           <div key={zone} className="space-y-1">
             <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1">{zone}</h3>
-            {zoneTasks.map((task: any) => {
+            {zoneTasks.map((task) => {
               const done = isTaskDoneToday(task.id);
               const last = lastDone(task.id);
               const freq = FREQUENCIES.find(f => f.value === task.frequency);

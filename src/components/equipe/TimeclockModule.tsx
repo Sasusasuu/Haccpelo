@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useSettings } from "@/hooks/useSettings";
@@ -10,40 +10,44 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Clock, Play, Square } from "lucide-react";
 import { SLOT_COLORS, fmtTime, diffH, fmtDuration } from "@/lib/constants";
+import { ErrorAlert } from "@/components/ui/error-alert";
+import { ListSkeleton } from "@/components/ui/loading-skeletons";
 
-interface PointeuseModuleProps {
+interface TimeclockModuleProps {
   userId: string;
 }
 
-export default function PointeuseModule({ userId }: PointeuseModuleProps) {
-  const { employees } = useEmployees(userId);
-  const { entries, clockIn, clockOut } = useTimeEntries(userId);
+export default function TimeclockModule({ userId }: TimeclockModuleProps) {
+  const { employees, loading: empLoading, error: empError, retry: empRetry } = useEmployees(userId);
+  const { entries, loading: entriesLoading, error: entriesError, clockIn, clockOut, retry: entriesRetry } = useTimeEntries(userId);
   const { verifyPin } = useSettings(userId);
 
-  const [pinModal, setPinModal] = useState<any>(null);
+  const [pinModal, setPinModal] = useState<{ emp: { id: string; name: string }; action: string } | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
   const pinRef = useRef<HTMLInputElement>(null);
 
   const today = new Date().toISOString().split("T")[0];
+  const loading = empLoading || entriesLoading;
+  const error = empError || entriesError;
 
   function getEmployeeStatus(empId: string) {
-    const todayEntries = entries.filter((e: any) => e.employee_id === empId && e.work_date === today);
-    const openEntry = todayEntries.find((e: any) => e.arrival_ts && !e.departure_ts);
+    const todayEntries = entries.filter(e => e.employee_id === empId && e.work_date === today);
+    const openEntry = todayEntries.find(e => e.arrival_ts && !e.departure_ts);
     return { isIn: !!openEntry, openEntry, todayEntries };
   }
 
   function getDayTotal(empId: string) {
-    const todayEntries = entries.filter((e: any) => e.employee_id === empId && e.work_date === today);
+    const todayEntries = entries.filter(e => e.employee_id === empId && e.work_date === today);
     let total = 0;
-    todayEntries.forEach((e: any) => {
+    todayEntries.forEach(e => {
       if (e.arrival_ts && e.departure_ts) total += diffH(e.arrival_ts, e.departure_ts);
       else if (e.arrival_ts) total += diffH(e.arrival_ts, Date.now());
     });
     return total;
   }
 
-  function openPinModal(emp: any) {
+  function openPinModal(emp: { id: string; name: string }) {
     const { isIn } = getEmployeeStatus(emp.id);
     setPinModal({ emp, action: isIn ? "fin de shift" : "début de shift" });
     setPinInput(""); setPinError(false);
@@ -51,6 +55,7 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
   }
 
   async function validatePin() {
+    if (!pinModal) return;
     if (verifyPin(pinInput)) {
       const { isIn, openEntry } = getEmployeeStatus(pinModal.emp.id);
       if (isIn && openEntry) await clockOut(openEntry.id);
@@ -62,9 +67,12 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
   }
 
   function getHistory(empId: string) {
-    return entries.filter((e: any) => e.employee_id === empId && e.departure_ts)
-      .sort((a: any, b: any) => b.work_date.localeCompare(a.work_date)).slice(0, 10);
+    return entries.filter(e => e.employee_id === empId && e.departure_ts)
+      .sort((a, b) => b.work_date.localeCompare(a.work_date)).slice(0, 10);
   }
+
+  if (error) return <ErrorAlert message={error} onRetry={empRetry || entriesRetry} />;
+  if (loading) return <ListSkeleton rows={4} />;
 
   return (
     <div className="space-y-4">
@@ -78,10 +86,10 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
       </div>
 
       <div className="grid gap-3">
-        {employees.map((emp: any, ei: number) => {
+        {employees.map((emp, ei) => {
           const { isIn, todayEntries, openEntry } = getEmployeeStatus(emp.id);
           const total = getDayTotal(emp.id);
-          const completedSessions = todayEntries.filter((e: any) => e.arrival_ts && e.departure_ts);
+          const completedSessions = todayEntries.filter(e => e.arrival_ts && e.departure_ts);
           return (
             <Card key={emp.id}>
               <CardContent className="p-4">
@@ -93,7 +101,7 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
                     <div>
                       <p className="font-semibold">{emp.name}</p>
                       <p className={`text-xs ${isIn ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
-                        {isIn ? `En service depuis ${fmtTime(openEntry?.arrival_ts)}` : todayEntries.length > 0 ? "Service terminé" : "Pas encore pointé"}
+                        {isIn ? `En service depuis ${fmtTime(openEntry?.arrival_ts ?? null)}` : todayEntries.length > 0 ? "Service terminé" : "Pas encore pointé"}
                       </p>
                     </div>
                   </div>
@@ -114,7 +122,7 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
                 </div>
                 {completedSessions.length > 0 && (
                   <div className="mt-3 pt-3 border-t flex gap-2 flex-wrap">
-                    {completedSessions.map((s: any) => (
+                    {completedSessions.map(s => (
                       <Badge key={s.id} variant="secondary" className="text-xs font-normal">
                         {fmtTime(s.arrival_ts)} → {fmtTime(s.departure_ts)} ({fmtDuration(diffH(s.arrival_ts, s.departure_ts))})
                       </Badge>
@@ -127,7 +135,6 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
         })}
       </div>
 
-      {/* History */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold">Historique récent</h3>
         <Card>
@@ -140,7 +147,7 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.flatMap((emp: any) => getHistory(emp.id).map((entry: any) => (
+              {employees.flatMap(emp => getHistory(emp.id).map(entry => (
                 <TableRow key={entry.id}>
                   <TableCell>{emp.name}</TableCell>
                   <TableCell className="text-muted-foreground">{new Date(entry.work_date).toLocaleDateString("fr-FR")}</TableCell>
@@ -152,7 +159,6 @@ export default function PointeuseModule({ userId }: PointeuseModuleProps) {
         </Card>
       </div>
 
-      {/* PIN Dialog */}
       <Dialog open={!!pinModal} onOpenChange={() => setPinModal(null)}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
