@@ -19,61 +19,83 @@ const DEFAULT_ROLES: Omit<CustomRole, "id">[] = [
 export function useCustomRoles(userId: string | undefined) {
   const [roles, setRoles] = useState<CustomRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchRoles = useCallback(async () => {
     if (!userId) return;
-    const { data, error } = await supabase
-      .from("custom_roles")
-      .select("id, label, color")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true });
-    if (!error && data) {
-      if (data.length === 0) {
-        // Seed defaults
-        const rows = DEFAULT_ROLES.map(r => ({ user_id: userId, label: r.label, color: r.color }));
-        const { data: seeded } = await supabase
-          .from("custom_roles")
-          .insert(rows)
-          .select("id, label, color");
-        if (seeded) setRoles(seeded);
-      } else {
-        setRoles(data);
+    setError(null);
+    try {
+      const { data, error: dbError } = await supabase
+        .from("custom_roles")
+        .select("id, label, color")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true });
+      if (dbError) throw dbError;
+      if (data) {
+        if (data.length === 0) {
+          const rows = DEFAULT_ROLES.map(r => ({ user_id: userId, label: r.label, color: r.color }));
+          const { data: seeded } = await supabase
+            .from("custom_roles")
+            .insert(rows)
+            .select("id, label, color");
+          if (seeded) setRoles(seeded);
+        } else {
+          setRoles(data);
+        }
       }
+    } catch {
+      setError("Impossible de charger les rôles. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [userId]);
 
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
 
   const addRole = async (label: string, color: string) => {
     if (!userId) return;
-    const { data, error } = await supabase
-      .from("custom_roles")
-      .insert({ user_id: userId, label, color })
-      .select("id, label, color")
-      .single();
-    if (!error && data) setRoles(prev => [...prev, data]);
+    try {
+      const { data, error: dbError } = await supabase
+        .from("custom_roles")
+        .insert({ user_id: userId, label, color })
+        .select("id, label, color")
+        .single();
+      if (dbError) throw dbError;
+      if (data) setRoles(prev => [...prev, data]);
+    } catch {
+      setError("Impossible d'ajouter le rôle.");
+    }
   };
 
   const updateRole = async (id: string, updates: Partial<Pick<CustomRole, "label" | "color">>) => {
     if (!userId) return;
-    const { error } = await supabase
-      .from("custom_roles")
-      .update(updates)
-      .eq("id", id)
-      .eq("user_id", userId);
-    if (!error) setRoles(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    try {
+      const { error: dbError } = await supabase
+        .from("custom_roles")
+        .update(updates)
+        .eq("id", id)
+        .eq("user_id", userId);
+      if (dbError) throw dbError;
+      setRoles(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    } catch {
+      setError("Impossible de modifier le rôle.");
+    }
   };
 
   const deleteRole = async (id: string) => {
     if (!userId) return;
-    const { error } = await supabase
-      .from("custom_roles")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
-    if (!error) setRoles(prev => prev.filter(r => r.id !== id));
+    try {
+      const { error: dbError } = await supabase
+        .from("custom_roles")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+      if (dbError) throw dbError;
+      setRoles(prev => prev.filter(r => r.id !== id));
+    } catch {
+      setError("Impossible de supprimer le rôle.");
+    }
   };
 
-  return { roles, loading, addRole, updateRole, deleteRole };
+  return { roles, loading, error, addRole, updateRole, deleteRole, retry: fetchRoles };
 }
