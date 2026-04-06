@@ -7,16 +7,16 @@ import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
-import { statusOf, todayStr, fmtDate, diffH, fmtDuration } from "@/lib/constants";
+import { statusOf, todayStr, diffH, fmtDuration, isTempAlert, DLC_ALERT_DAYS } from "@/lib/constants";
+import { CardSkeleton } from "@/components/ui/loading-skeletons";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import {
   ClipboardCheck,
   Thermometer,
   SprayCan,
   Users,
   AlertTriangle,
-  CheckCircle2,
   Clock,
-  TrendingUp,
 } from "lucide-react";
 
 interface DashboardProps {
@@ -24,14 +24,15 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ userId }: DashboardProps) {
-  const { produits } = useProducts(userId);
-  const { employees } = useEmployees(userId);
-  const { logs: tempLogs } = useTemperatureLogs(userId);
-  const { tasks: cleaningTasks, logs: cleaningLogs } = useCleaningPlan(userId);
-  const { equipments } = useEquipments(userId);
-  const { entries } = useTimeEntries(userId);
+  const { produits, loading: prodLoading, error: prodError, retry: prodRetry } = useProducts(userId);
+  const { employees, loading: empLoading } = useEmployees(userId);
+  const { logs: tempLogs, loading: tempLoading } = useTemperatureLogs(userId);
+  const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading } = useCleaningPlan(userId);
+  const { equipments, loading: equipLoading } = useEquipments(userId);
+  const { entries, loading: entriesLoading } = useTimeEntries(userId);
 
   const today = todayStr();
+  const loading = prodLoading || empLoading || tempLoading || cleanLoading || equipLoading || entriesLoading;
 
   const dlcStats = useMemo(() => {
     let expired = 0, urgent = 0, ok = 0;
@@ -55,8 +56,7 @@ export default function Dashboard({ userId }: DashboardProps) {
     const todayLogs = tempLogs.filter(l => l.log_date === today);
     const alerts = todayLogs.filter(l => {
       const eq = equipments.find(e => e.name === l.equipment_name);
-      if (eq?.equipment_type === "congelateur") return l.temperature > -15;
-      return l.temperature > 5;
+      return eq ? isTempAlert(l.temperature, eq.equipment_type) : false;
     });
     return { recorded: todayLogs.length, alerts: alerts.length, expected: equipments.length * 2 };
   }, [tempLogs, equipments, today]);
@@ -72,6 +72,9 @@ export default function Dashboard({ userId }: DashboardProps) {
     return { activeNow, totalHours, totalEmployees: employees.length };
   }, [entries, employees, today]);
 
+  if (prodError) return <ErrorAlert message={prodError} onRetry={prodRetry} />;
+  if (loading) return <CardSkeleton count={4} />;
+
   return (
     <div className="space-y-6">
       <div>
@@ -81,7 +84,6 @@ export default function Dashboard({ userId }: DashboardProps) {
         </p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -127,7 +129,7 @@ export default function Dashboard({ userId }: DashboardProps) {
               <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${cleaningStats.total > 0 ? (cleaningStats.done / cleaningStats.total) * 100 : 0}%` }}
+                  style={{ width: `${(cleaningStats.done / cleaningStats.total) * 100}%` }}
                 />
               </div>
             )}
@@ -152,7 +154,6 @@ export default function Dashboard({ userId }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Alerts Section */}
       {(dlcStats.expired > 0 || dlcStats.urgent > 0 || tempStats.alerts > 0) && (
         <Card className="border-destructive/50">
           <CardHeader className="pb-3">

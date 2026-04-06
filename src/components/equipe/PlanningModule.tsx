@@ -1,17 +1,18 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePlanningSlots } from "@/hooks/usePlanningSlots";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, Calendar, Copy, FileText, X, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText } from "lucide-react";
 import { DAYS, SLOT_COLORS, fmtShort, getRoleColor, getWeekDates, makeWeekKey, calcSlotMinutes } from "@/lib/constants";
+import { ErrorAlert } from "@/components/ui/error-alert";
+import { PlanningGridSkeleton } from "@/components/ui/loading-skeletons";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -24,19 +25,21 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
   const dates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekKey = useMemo(() => makeWeekKey(dates), [dates]);
 
-  const { employees } = useEmployees(userId);
-  const { slots, addSlots, deleteSlot, fetchSlotsByWeekKey } = usePlanningSlots(userId, weekKey);
+  const { employees, error: empError } = useEmployees(userId);
+  const { slots, loading, error: slotError, addSlots, deleteSlot, fetchSlotsByWeekKey, retry } = usePlanningSlots(userId, weekKey);
   const { roles } = useCustomRoles(userId);
 
-  const [modal, setModal] = useState<any>(null);
+  const [modal, setModal] = useState<{ empId: string; empName: string; dayIdx: number } | null>(null);
   const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [] as number[], role: "" });
   const [copying, setCopying] = useState(false);
 
+  const error = empError || slotError;
+
   const weekHours = useMemo(() => {
     const result: Record<string, string> = {};
-    employees.forEach((emp: any) => {
+    employees.forEach((emp) => {
       let total = 0;
-      slots.filter((s: any) => s.employee_id === emp.id).forEach((s: any) => {
+      slots.filter(s => s.employee_id === emp.id).forEach(s => {
         total += calcSlotMinutes(s.start_time, s.end_time) / 60;
       });
       result[emp.id] = total.toFixed(1);
@@ -48,7 +51,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
     if (!modal) return;
     const { empId, dayIdx } = modal;
     const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined }];
-    (slotForm.copyDays || []).forEach((di: number) => {
+    slotForm.copyDays.forEach((di) => {
       entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined });
     });
     await addSlots(entries);
@@ -62,8 +65,8 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
       const prevDates = getWeekDates(weekOffset - 1);
       const prevWeekKey = makeWeekKey(prevDates);
       const prevSlots = await fetchSlotsByWeekKey(prevWeekKey);
-      if (prevSlots.length === 0) { setCopying(false); return; }
-      await addSlots(prevSlots.map((s: any) => ({ employeeId: s.employee_id, dayIndex: s.day_index, startTime: s.start_time, endTime: s.end_time, role: s.role || undefined })));
+      if (prevSlots.length === 0) return;
+      await addSlots(prevSlots.map(s => ({ employeeId: s.employee_id, dayIndex: s.day_index, startTime: s.start_time, endTime: s.end_time, role: s.role || undefined })));
     } finally { setCopying(false); }
   }
 
@@ -73,11 +76,11 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
     doc.text("Planning — Semaine du " + fmtShort(dates[0]) + " au " + fmtShort(dates[6]) + " " + dates[0].getFullYear(), 14, 18);
 
     const head = [["Employé", ...DAYS.map((d, i) => d + " " + fmtShort(dates[i])), "Total"]];
-    const body = employees.map((emp: any) => {
+    const body = employees.map((emp) => {
       const row = [emp.name];
       for (let di = 0; di < 7; di++) {
-        const ds = slots.filter((s: any) => s.employee_id === emp.id && s.day_index === di);
-        row.push(ds.map((s: any) => `${s.start_time}-${s.end_time}${s.role ? ` (${s.role})` : ""}`).join("\n") || "—");
+        const ds = slots.filter(s => s.employee_id === emp.id && s.day_index === di);
+        row.push(ds.map(s => `${s.start_time}-${s.end_time}${s.role ? ` (${s.role})` : ""}`).join("\n") || "—");
       }
       const total = weekHours[emp.id] || "0";
       const contract = emp.contract_hours;
@@ -93,11 +96,11 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
       alternateRowStyles: { fillColor: [248, 248, 248] },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 8;
+    const finalY = (doc as unknown as Record<string, { finalY: number }>).lastAutoTable.finalY + 8;
     doc.setFontSize(8);
     doc.text("Rôles :", 14, finalY);
     let xPos = 32;
-    roles.forEach((r: any) => {
+    roles.forEach((r) => {
       const hex = r.color;
       const rgb: [number, number, number] = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
       doc.setFillColor(...rgb);
@@ -112,9 +115,11 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
   const diff = calcSlotMinutes(slotForm.start, slotForm.end);
   const modalH = Math.floor(diff / 60), modalM = diff % 60;
 
+  if (error) return <ErrorAlert message={error} onRetry={retry} />;
+  if (loading) return <PlanningGridSkeleton />;
+
   return (
     <div className="space-y-4">
-      {/* Navigation */}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)}>
           <ChevronLeft className="h-4 w-4" />
@@ -136,7 +141,6 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         </div>
       </div>
 
-      {/* Planning Grid */}
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -152,14 +156,14 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp: any, ei: number) => (
+              {employees.map((emp, ei) => (
                 <tr key={emp.id} className="border-b last:border-0 hover:bg-muted/50">
                   <td className="p-2 font-medium text-sm">{emp.name}</td>
                   {dates.map((_, dayIdx) => {
-                    const daySlots = slots.filter((s: any) => s.employee_id === emp.id && s.day_index === dayIdx);
+                    const daySlots = slots.filter(s => s.employee_id === emp.id && s.day_index === dayIdx);
                     return (
                       <td key={dayIdx} className="p-1 align-top border-l">
-                        {daySlots.map((s: any) => {
+                        {daySlots.map(s => {
                           const slotColor = s.role ? getRoleColor(s.role, roles) : SLOT_COLORS[ei % SLOT_COLORS.length];
                           return (
                             <div key={s.id} className="rounded-md px-1.5 py-0.5 mb-0.5 text-[11px]" style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}` }}>
@@ -195,7 +199,6 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         </div>
       </Card>
 
-      {/* Slot Modal */}
       <Dialog open={!!modal} onOpenChange={() => setModal(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -223,7 +226,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
                 <SelectTrigger><SelectValue placeholder="Aucun rôle" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Aucun</SelectItem>
-                  {roles.map((r: any) => (
+                  {roles.map(r => (
                     <SelectItem key={r.id} value={r.label}>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded" style={{ background: r.color }} />
