@@ -27,7 +27,7 @@ interface IdentifyModalProps {
   verifyManagerPin?: (pin: string) => boolean;
 }
 
-export default function IdentifyModal({ open, onClose, employees, managersOnly = false, onIdentified, title = "Identification requise", subtitle }: IdentifyModalProps) {
+export default function IdentifyModal({ open, onClose, employees, managersOnly = false, onIdentified, title = "Identification requise", subtitle, verifyManagerPin }: IdentifyModalProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
