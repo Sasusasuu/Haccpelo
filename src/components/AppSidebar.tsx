@@ -8,6 +8,7 @@ import {
   Users,
   LayoutDashboard,
   StickyNote,
+  FileText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -29,6 +30,7 @@ const haccpItems = [
   { title: "Gestion DLC", url: "/haccp/dlc", icon: ClipboardCheck },
   { title: "Températures", url: "/haccp/temperatures", icon: Thermometer },
   { title: "Nettoyage", url: "/haccp/nettoyage", icon: SprayCan },
+  { title: "Rapport HACCP", url: "/haccp/rapport", icon: FileText },
   { title: "Paramètres HACCP", url: "/haccp/parametres", icon: Settings },
 ];
 
