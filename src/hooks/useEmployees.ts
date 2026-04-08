@@ -49,7 +49,7 @@ export function useEmployees(userId: string | undefined) {
     }
   };
 
-  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type">>) => {
+  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type" | "nfc_badge_id">>) => {
     if (!userId) return;
     try {
       const { error: dbError } = await supabase
