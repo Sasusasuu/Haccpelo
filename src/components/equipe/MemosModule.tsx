@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMemos } from "@/hooks/useMemos";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,13 +12,20 @@ interface MemosModuleProps {
 
 export default function MemosModule({ userId }: MemosModuleProps) {
   const { memos, loading, addMemo, deleteMemo } = useMemos(userId);
+  const { log: auditLog } = useAuditLog(userId);
   const [draft, setDraft] = useState("");
 
   const handleAdd = async () => {
     const text = draft.trim();
     if (!text) return;
     await addMemo(text);
+    await auditLog("memo_added", `Mémo ajouté : "${text.slice(0, 50)}${text.length > 50 ? "…" : ""}"`);
     setDraft("");
+  };
+
+  const handleDelete = async (id: string, content: string) => {
+    await deleteMemo(id);
+    await auditLog("memo_deleted", `Mémo supprimé : "${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`);
   };
 
   return (
