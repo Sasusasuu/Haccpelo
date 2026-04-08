@@ -1,0 +1,1 @@
+ALTER TABLE public.settings ADD COLUMN planning_session_minutes INTEGER NOT NULL DEFAULT 5;

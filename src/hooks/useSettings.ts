@@ -9,6 +9,7 @@ function hashPin(pin: string): string {
 
 export function useSettings(userId: string | undefined) {
   const [managerPinHash, setManagerPinHash] = useState<string>(hashPin("1234"));
+  const [planningSessionMinutes, setPlanningSessionMinutes] = useState(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,15 +19,16 @@ export function useSettings(userId: string | undefined) {
     try {
       const { data, error: dbError } = await supabase
         .from("settings")
-        .select("manager_pin_hash")
+        .select("manager_pin_hash, planning_session_minutes")
         .eq("user_id", userId)
         .single();
       if (dbError && dbError.code === "PGRST116") {
         await supabase.from("settings").insert({ user_id: userId, manager_pin_hash: hashPin("1234") });
       } else if (dbError) {
         throw dbError;
-      } else if (data?.manager_pin_hash) {
-        setManagerPinHash(data.manager_pin_hash);
+      } else {
+        if (data?.manager_pin_hash) setManagerPinHash(data.manager_pin_hash);
+        if (data?.planning_session_minutes != null) setPlanningSessionMinutes(data.planning_session_minutes);
       }
     } catch {
       setError("Impossible de charger les paramètres.");
@@ -54,5 +56,19 @@ export function useSettings(userId: string | undefined) {
     }
   };
 
-  return { verifyPin, changePin, loading, error, retry: fetchSettings };
+  const updateSessionMinutes = async (minutes: number) => {
+    if (!userId) return;
+    try {
+      const { error: dbError } = await supabase
+        .from("settings")
+        .update({ planning_session_minutes: minutes } as any)
+        .eq("user_id", userId);
+      if (dbError) throw dbError;
+      setPlanningSessionMinutes(minutes);
+    } catch {
+      setError("Impossible de modifier la durée de session.");
+    }
+  };
+
+  return { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes, loading, error, retry: fetchSettings };
 }

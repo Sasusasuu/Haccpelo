@@ -24,7 +24,7 @@ interface EquipeParametresProps {
 
 export default function EquipeParametres({ userId, onSignOut }: EquipeParametresProps) {
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
-  const { verifyPin, changePin } = useSettings(userId);
+  const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
   const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog } = useAuditLog(userId);
 
@@ -262,7 +262,16 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     memo_deleted: "📝- Mémo supprimé",
     planning_slot_added: "📅+ Créneau ajouté",
     planning_slot_deleted: "📅- Créneau supprimé",
+    planning_week_copied: "📅 Sem. copiée",
+    planning_unlocked: "🔓 Planning déverrouillé",
     manager_pin_changed: "🔐 Code manager modifié",
+    temp_logged: "🌡️ Température relevée",
+    temp_deleted: "🌡️- Température supprimée",
+    cleaning_done: "🧹 Nettoyage validé",
+    product_added: "📦+ Produit ajouté",
+    product_updated: "📦 Produit modifié",
+    product_deleted: "📦- Produit supprimé",
+    session_duration_changed: "⏱️ Durée session modifiée",
   };
 
   const actionTypes = [...new Set(auditLogs.map(l => l.action_type))];
@@ -442,6 +451,28 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
             <Input value={newRoleLabel} onChange={e => setNewRoleLabel(e.target.value)} onKeyDown={async e => { if (e.key === "Enter") await handleAddRole(); }} placeholder="Nom du rôle" className="flex-1" />
             <input type="color" value={newRoleColor} onChange={e => setNewRoleColor(e.target.value)} className="w-9 h-10 border-none rounded cursor-pointer p-0" />
             <Button onClick={handleAddRole}><Plus className="h-4 w-4" /></Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Durée session identification */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">⏱️ Durée de session d'identification</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Après identification (PIN ou badge), les modules restent déverrouillés pendant cette durée avant de redemander le code.
+          </p>
+          <div className="flex gap-2 items-center">
+            <Input type="number" min={1} max={60} value={planningSessionMinutes} onChange={async e => {
+              const v = parseInt(e.target.value);
+              if (v >= 1 && v <= 60) {
+                await updateSessionMinutes(v);
+                await auditLog("session_duration_changed", `Durée session modifiée : ${v} min`, currentManagerId);
+              }
+            }} className="w-20 h-9 text-center" />
+            <span className="text-sm text-muted-foreground">minutes</span>
           </div>
         </CardContent>
       </Card>

@@ -1,12 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useSettings } from "@/hooks/useSettings";
+import { useAuditLog } from "@/hooks/useAuditLog";
+import { useIdentitySession } from "@/hooks/useIdentitySession";
+import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { Thermometer, Info, X, Check } from "lucide-react";
+import { Thermometer, Info, X, Check, Shield } from "lucide-react";
 import { todayStr, fmtDate, isTempAlert, TEMP_THRESHOLD_FREEZER, TEMP_THRESHOLD_FRIDGE } from "@/lib/constants";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { TableSkeleton } from "@/components/ui/loading-skeletons";
@@ -18,9 +23,26 @@ interface TemperaturesModuleProps {
 
 export default function TemperaturesModule({ userId, equipmentsList }: TemperaturesModuleProps) {
   const { logs, loading, error, addLog, deleteLog, retry } = useTemperatureLogs(userId);
+  const { employees } = useEmployees(userId);
+  const { planningSessionMinutes } = useSettings(userId);
+  const { log: auditLog } = useAuditLog(userId);
+  const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
+
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [temps, setTemps] = useState<Record<string, string>>({});
   const [showNormes, setShowNormes] = useState(false);
+  const [showIdentify, setShowIdentify] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const requireAuth = useCallback((action: () => void) => {
+    if (isIdentified) { action(); } else { setPendingAction(() => action); setShowIdentify(true); }
+  }, [isIdentified]);
+
+  const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
+    startSession(emp);
+    setShowIdentify(false);
+    if (pendingAction) { pendingAction(); setPendingAction(null); }
+  }, [startSession, pendingAction]);
 
   const logsForDate = useMemo(() => logs.filter(l => l.log_date === selectedDate), [logs, selectedDate]);
   const getExisting = (equip: string, period: string) => logsForDate.find(l => l.equipment_name === equip && l.period === period);
@@ -32,8 +54,18 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
     if (val === undefined || val === "") return;
     const temp = parseFloat(val);
     if (isNaN(temp)) return;
-    await addLog({ equipment_name: equip, period, temperature: temp, log_date: selectedDate });
-    setTemps(prev => { const n = { ...prev }; delete n[key]; return n; });
+    requireAuth(async () => {
+      await addLog({ equipment_name: equip, period, temperature: temp, log_date: selectedDate });
+      await auditLog("temp_logged", `Température ${equip} ${period} : ${temp > 0 ? "+" : ""}${temp}°C`, identifiedEmployee?.id ?? null);
+      setTemps(prev => { const n = { ...prev }; delete n[key]; return n; });
+    });
+  };
+
+  const handleDelete = (logId: string, equipName: string, period: string) => {
+    requireAuth(async () => {
+      await deleteLog(logId);
+      await auditLog("temp_deleted", `Suppression relevé ${equipName} ${period}`, identifiedEmployee?.id ?? null);
+    });
   };
 
   const tempBadgeVariant = (temp: number, equip: { equipment_type: string }) => {
@@ -50,6 +82,14 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
 
   return (
     <div className="space-y-4">
+      {isIdentified && identifiedEmployee && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Shield className="h-3.5 w-3.5 text-primary" />
+          Identifié : <strong>{identifiedEmployee.name}</strong>
+          <Button variant="ghost" size="sm" className="h-5 text-[10px] ml-auto" onClick={clearSession}>Verrouiller</Button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -110,7 +150,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
                             <Badge variant={tempBadgeVariant(existing.temperature, equip) as "default" | "destructive" | "outline"} className="font-mono">
                               {existing.temperature > 0 ? "+" : ""}{existing.temperature}°C
                             </Badge>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteLog(existing.id)}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(existing.id, equip.name, period)}>
                               <X className="h-3 w-3" />
                             </Button>
                           </div>
@@ -150,6 +190,15 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
           </div>
         </div>
       )}
+
+      <IdentifyModal
+        open={showIdentify}
+        onClose={() => { setShowIdentify(false); setPendingAction(null); }}
+        employees={employees}
+        onIdentified={handleIdentified}
+        title="Identification requise"
+        subtitle="Entrez votre code pour enregistrer un relevé."
+      />
     </div>
   );
 }

@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMemos } from "@/hooks/useMemos";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useSettings } from "@/hooks/useSettings";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { useIdentitySession } from "@/hooks/useIdentitySession";
+import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, StickyNote } from "lucide-react";
+import { Plus, Trash2, StickyNote, Shield } from "lucide-react";
 
 interface MemosModuleProps {
   userId: string;
@@ -12,20 +16,40 @@ interface MemosModuleProps {
 
 export default function MemosModule({ userId }: MemosModuleProps) {
   const { memos, loading, addMemo, deleteMemo } = useMemos(userId);
+  const { employees } = useEmployees(userId);
+  const { planningSessionMinutes } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
-  const [draft, setDraft] = useState("");
+  const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
-  const handleAdd = async () => {
+  const [draft, setDraft] = useState("");
+  const [showIdentify, setShowIdentify] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const requireAuth = useCallback((action: () => void) => {
+    if (isIdentified) { action(); } else { setPendingAction(() => action); setShowIdentify(true); }
+  }, [isIdentified]);
+
+  const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
+    startSession(emp);
+    setShowIdentify(false);
+    if (pendingAction) { pendingAction(); setPendingAction(null); }
+  }, [startSession, pendingAction]);
+
+  const handleAdd = () => {
     const text = draft.trim();
     if (!text) return;
-    await addMemo(text);
-    await auditLog("memo_added", `Mémo ajouté : "${text.slice(0, 50)}${text.length > 50 ? "…" : ""}"`);
-    setDraft("");
+    requireAuth(async () => {
+      await addMemo(text);
+      await auditLog("memo_added", `Mémo ajouté : "${text.slice(0, 50)}${text.length > 50 ? "…" : ""}"`, identifiedEmployee?.id ?? null);
+      setDraft("");
+    });
   };
 
-  const handleDelete = async (id: string, content: string) => {
-    await deleteMemo(id);
-    await auditLog("memo_deleted", `Mémo supprimé : "${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`);
+  const handleDelete = (id: string, content: string) => {
+    requireAuth(async () => {
+      await deleteMemo(id);
+      await auditLog("memo_deleted", `Mémo supprimé : "${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`, identifiedEmployee?.id ?? null);
+    });
   };
 
   return (
@@ -33,6 +57,14 @@ export default function MemosModule({ userId }: MemosModuleProps) {
       <h2 className="text-lg font-semibold flex items-center gap-2">
         <StickyNote className="h-5 w-5" /> Pense-bête
       </h2>
+
+      {isIdentified && identifiedEmployee && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Shield className="h-3.5 w-3.5 text-primary" />
+          Identifié : <strong>{identifiedEmployee.name}</strong>
+          <Button variant="ghost" size="sm" className="h-5 text-[10px] ml-auto" onClick={clearSession}>Verrouiller</Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -88,6 +120,15 @@ export default function MemosModule({ userId }: MemosModuleProps) {
           ))}
         </div>
       )}
+
+      <IdentifyModal
+        open={showIdentify}
+        onClose={() => { setShowIdentify(false); setPendingAction(null); }}
+        employees={employees}
+        onIdentified={handleIdentified}
+        title="Identification requise"
+        subtitle="Entrez votre code pour modifier les pense-bêtes."
+      />
     </div>
   );
 }
