@@ -106,7 +106,8 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
 
   async function handleSetPin(empId: string, empName: string) {
     if (empPinValue.length !== 4) return;
-    await updateEmployee(empId, { pin_hash: hashEmployeePin(empPinValue) });
+    const hashedPin = await hashEmployeePin(empPinValue);
+    await updateEmployee(empId, { pin_hash: hashedPin });
     await auditLog("employee_pin_changed", `PIN modifié pour "${empName}"`, currentManagerId, currentManagerName);
     setEmpPinEdit(null);
     setEmpPinValue("");
