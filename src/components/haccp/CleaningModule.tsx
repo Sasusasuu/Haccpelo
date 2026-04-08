@@ -145,6 +145,7 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
         onClose={() => { setShowIdentify(false); setPendingAction(null); }}
         employees={employees}
         onIdentified={handleIdentified}
+        verifyManagerPin={verifyPin}
         title="Identification requise"
         subtitle="Entrez votre code pour valider le nettoyage."
       />
