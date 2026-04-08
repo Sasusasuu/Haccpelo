@@ -63,8 +63,8 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
   const expectedCleaningTotal = expectedCleaningDaily + expectedCleaningWeekly + expectedCleaningMonthly;
 
   const monthProducts = useMemo(() => produits.filter(p => {
-    return (p.created_at && p.created_at.slice(0, 7) === selectedMonth) || (p.dlc >= firstDay && p.dlc <= lastDay);
-  }), [produits, selectedMonth, firstDay, lastDay]);
+    return (p.dlc >= firstDay && p.dlc <= lastDay) || (p.fab && p.fab >= firstDay && p.fab <= lastDay);
+  }), [produits, firstDay, lastDay]);
   const expiredProducts = monthProducts.filter(p => p.dlc <= lastDay && p.dlc <= new Date().toISOString().split("T")[0]);
 
   const conformityScore = useMemo(() => {
