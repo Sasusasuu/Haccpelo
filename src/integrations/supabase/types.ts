@@ -110,6 +110,7 @@ export type Database = {
           id: string
           meal_type: string | null
           name: string
+          nfc_badge_id: string | null
           updated_at: string
           user_id: string
         }
@@ -119,6 +120,7 @@ export type Database = {
           id?: string
           meal_type?: string | null
           name: string
+          nfc_badge_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -128,6 +130,7 @@ export type Database = {
           id?: string
           meal_type?: string | null
           name?: string
+          nfc_badge_id?: string | null
           updated_at?: string
           user_id?: string
         }
