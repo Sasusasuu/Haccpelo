@@ -234,6 +234,12 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
                   <SelectItem value="repas_entreprise">Repas en entreprise</SelectItem>
                 </SelectContent>
               </Select>
+              <Input
+                value={emp.nfc_badge_id || ""}
+                onChange={e => updateEmployee(emp.id, { nfc_badge_id: e.target.value || null })}
+                placeholder="ID badge NFC"
+                className="w-[120px] h-8 text-xs font-mono"
+              />
               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteEmployee(emp.id)}><Trash2 className="h-3 w-3" /></Button>
             </div>
           ))}
