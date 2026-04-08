@@ -381,18 +381,19 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
 
       {/* Preview cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className={`${currentLevel.border} border`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Score conformité</CardTitle>
+            <CardTitle className="text-sm font-medium">Alim'Confiance</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold ${conformityScore >= 80 ? "text-green-600" : conformityScore >= 60 ? "text-yellow-600" : "text-destructive"}`}>
-              {conformityScore}%
+            <div className="flex items-center gap-2">
+              <span className="text-3xl">{currentLevel.emoji}</span>
+              <div>
+                <div className={`text-sm font-bold ${currentLevel.color}`}>{currentLevel.label}</div>
+                <p className="text-xs text-muted-foreground">Grille officielle DGAL</p>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {conformityScore >= 80 ? "Satisfaisant" : conformityScore >= 60 ? "À améliorer" : "Insuffisant"}
-            </p>
           </CardContent>
         </Card>
 
