@@ -7,6 +7,7 @@ import {
   Clock,
   Users,
   LayoutDashboard,
+  StickyNote,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -34,6 +35,7 @@ const haccpItems = [
 const equipeItems = [
   { title: "Planning", url: "/equipe/planning", icon: CalendarDays },
   { title: "Pointeuse", url: "/equipe/pointeuse", icon: Clock },
+  { title: "Pense-bête", url: "/equipe/memos", icon: StickyNote },
   { title: "Paramètres Équipe", url: "/equipe/parametres", icon: Users },
 ];
 

@@ -10,6 +10,7 @@ import HACCPSettings from "@/components/haccp/HACCPSettings";
 import PlanningModule from "@/components/equipe/PlanningModule";
 import TimeclockModule from "@/components/equipe/TimeclockModule";
 import TeamSettings from "@/components/equipe/TeamSettings";
+import MemosModule from "@/components/equipe/MemosModule";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 
@@ -27,6 +28,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
         <Route path="/haccp/parametres" element={<HACCPSettings userId={userId} equipmentsList={equipments} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />} />
         <Route path="/equipe/planning" element={<PlanningModule userId={userId} />} />
         <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
+        <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
         <Route path="/equipe/parametres" element={<TeamSettings userId={userId} onSignOut={onSignOut} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
