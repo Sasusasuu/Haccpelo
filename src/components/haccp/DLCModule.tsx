@@ -25,7 +25,7 @@ interface DLCModuleProps {
 export default function DLCModule({ userId }: DLCModuleProps) {
   const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
   const { employees } = useEmployees(userId);
-  const { planningSessionMinutes } = useSettings(userId);
+  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
   const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
