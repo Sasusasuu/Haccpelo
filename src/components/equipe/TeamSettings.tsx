@@ -455,6 +455,28 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
         </CardContent>
       </Card>
 
+      {/* Durée session identification */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">⏱️ Durée de session d'identification</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Après identification (PIN ou badge), les modules restent déverrouillés pendant cette durée avant de redemander le code.
+          </p>
+          <div className="flex gap-2 items-center">
+            <Input type="number" min={1} max={60} value={planningSessionMinutes} onChange={async e => {
+              const v = parseInt(e.target.value);
+              if (v >= 1 && v <= 60) {
+                await updateSessionMinutes(v);
+                await auditLog("session_duration_changed", `Durée session modifiée : ${v} min`, currentManagerId);
+              }
+            }} className="w-20 h-9 text-center" />
+            <span className="text-sm text-muted-foreground">minutes</span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Export Comptable */}
       <Card>
         <CardHeader className="pb-3">
