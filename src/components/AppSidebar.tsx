@@ -34,6 +34,7 @@ const haccpItems = [
 const equipeItems = [
   { title: "Planning", url: "/equipe/planning", icon: CalendarDays },
   { title: "Pointeuse", url: "/equipe/pointeuse", icon: Clock },
+  { title: "Pense-bête", url: "/equipe/memos", icon: StickyNote },
   { title: "Paramètres Équipe", url: "/equipe/parametres", icon: Users },
 ];
 
