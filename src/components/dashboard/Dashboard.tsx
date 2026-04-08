@@ -214,6 +214,14 @@ export default function Dashboard({ userId }: DashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      <AnalyticsCharts
+        tempLogs={tempLogs}
+        cleaningTasks={cleaningTasks}
+        cleaningLogs={cleaningLogs}
+        equipments={equipments}
+        produits={produits}
+      />
     </div>
   );
 }
