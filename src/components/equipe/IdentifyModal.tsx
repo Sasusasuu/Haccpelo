@@ -23,13 +23,14 @@ interface IdentifyModalProps {
   onIdentified: (employee: Employee) => void;
   title?: string;
   subtitle?: string;
-  /** Optional: also accept the manager legacy PIN */
-  verifyManagerPin?: (pin: string) => boolean;
+  /** Optional: also accept the manager legacy PIN (async) */
+  verifyManagerPin?: (pin: string) => Promise<boolean>;
 }
 
 export default function IdentifyModal({ open, onClose, employees, managersOnly = false, onIdentified, title = "Identification requise", subtitle, verifyManagerPin }: IdentifyModalProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+  const [validating, setValidating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -40,22 +41,43 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
     }
   }, [open]);
 
-  const validate = useCallback(() => {
-    const candidates = managersOnly ? employees.filter(e => e.is_manager) : employees;
-    const match = candidates.find(emp => emp.pin_hash && verifyEmployeePin(emp, pin));
-    if (match) {
-      onIdentified(match);
-      setPin("");
-    } else if (verifyManagerPin && verifyManagerPin(pin)) {
-      // Fallback: accept manager legacy PIN — create a virtual "Manager" identity
-      onIdentified({ id: "", name: "Manager", contract_hours: null, meal_type: null, nfc_badge_id: null, pin_hash: null, is_manager: true });
-      setPin("");
-    } else {
+  const validate = useCallback(async () => {
+    if (validating) return;
+    setValidating(true);
+    try {
+      const candidates = managersOnly ? employees.filter(e => e.is_manager) : employees;
+      
+      // Check employee PINs (async bcrypt)
+      for (const emp of candidates) {
+        if (emp.pin_hash) {
+          const match = await verifyEmployeePin(emp, pin);
+          if (match) {
+            onIdentified(emp);
+            setPin("");
+            setValidating(false);
+            return;
+          }
+        }
+      }
+
+      // Fallback: legacy manager PIN
+      if (verifyManagerPin) {
+        const isManager = await verifyManagerPin(pin);
+        if (isManager) {
+          onIdentified({ id: "", name: "Manager", contract_hours: null, meal_type: null, nfc_badge_id: null, pin_hash: null, is_manager: true });
+          setPin("");
+          setValidating(false);
+          return;
+        }
+      }
+
       setError(true);
       setPin("");
       setTimeout(() => setError(false), 1500);
+    } finally {
+      setValidating(false);
     }
-  }, [pin, employees, managersOnly, onIdentified, verifyManagerPin]);
+  }, [pin, employees, managersOnly, onIdentified, verifyManagerPin, validating]);
 
   const handleNfc = useCallback(async () => {
     if (!isNfcSupported()) {
@@ -98,15 +120,17 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
           onKeyDown={e => e.key === "Enter" && validate()}
           placeholder="Code PIN à 4 chiffres"
           className={`text-center text-xl tracking-[10px] ${error ? "border-destructive bg-destructive/10" : ""}`}
+          disabled={validating}
         />
         {error && <p className="text-xs text-destructive text-center">Code incorrect{managersOnly ? " ou pas manager" : ""}</p>}
+        {validating && <p className="text-xs text-muted-foreground text-center">Vérification…</p>}
         <DialogFooter className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleNfc} className="gap-1">
             <Nfc className="h-4 w-4" /> Badge NFC
           </Button>
           <div className="flex-1" />
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={validate}>Valider</Button>
+          <Button onClick={validate} disabled={validating}>{validating ? "…" : "Valider"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
