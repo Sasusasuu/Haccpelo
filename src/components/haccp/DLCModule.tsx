@@ -428,7 +428,7 @@ export default function DLCModule({ userId }: DLCModuleProps) {
               setConfirmDelete(null);
               requireAuth(async () => {
                 await deleteProduct(product.id);
-                await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, identifiedEmployee?.id ?? null);
+                await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
               });
             }}>Supprimer</Button>
           </DialogFooter>
