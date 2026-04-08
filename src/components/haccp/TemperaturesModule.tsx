@@ -24,7 +24,7 @@ interface TemperaturesModuleProps {
 export default function TemperaturesModule({ userId, equipmentsList }: TemperaturesModuleProps) {
   const { logs, loading, error, addLog, deleteLog, retry } = useTemperatureLogs(userId);
   const { employees } = useEmployees(userId);
-  const { planningSessionMinutes } = useSettings(userId);
+  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
   const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
