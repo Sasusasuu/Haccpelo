@@ -7,6 +7,7 @@ import {
   Clock,
   Users,
   LayoutDashboard,
+  StickyNote,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
