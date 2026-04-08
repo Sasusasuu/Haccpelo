@@ -12,6 +12,7 @@ const DLCModule = lazy(() => import("@/components/haccp/DLCModule"));
 const TemperaturesModule = lazy(() => import("@/components/haccp/TemperaturesModule"));
 const CleaningModule = lazy(() => import("@/components/haccp/CleaningModule"));
 const HACCPSettings = lazy(() => import("@/components/haccp/HACCPSettings"));
+const HACCPReportModule = lazy(() => import("@/components/haccp/HACCPReportModule"));
 const PlanningModule = lazy(() => import("@/components/equipe/PlanningModule"));
 const TimeclockModule = lazy(() => import("@/components/equipe/TimeclockModule"));
 const TeamSettings = lazy(() => import("@/components/equipe/TeamSettings"));
@@ -38,6 +39,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
           <Route path="/haccp/temperatures" element={<TemperaturesModule userId={userId} equipmentsList={equipments} />} />
           <Route path="/haccp/nettoyage" element={<CleaningModule userId={userId} cleaningTasks={cleaningTasks} cleaningLogs={cleaningLogs} logCleaningDone={logCleaningDone} deleteCleaningLog={deleteCleaningLog} loading={cleanLoading} error={cleanError} onRetry={cleanRetry} />} />
           <Route path="/haccp/parametres" element={<HACCPSettings userId={userId} equipmentsList={equipments} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />} />
+          <Route path="/haccp/rapport" element={<HACCPReportModule userId={userId} />} />
           <Route path="/equipe/planning" element={<PlanningModule userId={userId} />} />
           <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
           <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
