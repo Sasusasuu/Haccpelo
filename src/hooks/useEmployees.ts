@@ -11,19 +11,41 @@ export interface Employee {
   is_manager: boolean;
 }
 
-function hashPin(pin: string): string {
-  let h = 5381;
-  for (let i = 0; i < pin.length; i++) h = (h * 33) ^ pin.charCodeAt(i);
-  return (h >>> 0).toString(16);
+async function hashPinRemote(pin: string): Promise<string> {
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hash-pin`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ action: "hash", pin }),
+  });
+  if (!res.ok) throw new Error("Failed to hash PIN");
+  const data = await res.json();
+  return data.hash;
 }
 
-export function verifyEmployeePin(employee: Employee, pin: string): boolean {
+async function verifyPinRemote(pin: string, hash: string): Promise<boolean> {
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hash-pin`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ action: "verify", pin, hash }),
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.valid === true;
+}
+
+export async function verifyEmployeePin(employee: Employee, pin: string): Promise<boolean> {
   if (!employee.pin_hash) return false;
-  return hashPin(pin) === employee.pin_hash;
+  return verifyPinRemote(pin, employee.pin_hash);
 }
 
-export function hashEmployeePin(pin: string): string {
-  return hashPin(pin);
+export async function hashEmployeePin(pin: string): Promise<string> {
+  return hashPinRemote(pin);
 }
 
 export function useEmployees(userId: string | undefined) {

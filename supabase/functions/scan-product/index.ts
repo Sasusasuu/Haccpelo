@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,24 +12,21 @@ serve(async (req) => {
     const { image_url } = await req.json();
     if (!image_url) throw new Error("image_url is required");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const today = new Date().toISOString().split("T")[0];
     const categories = ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `Tu es un expert en traçabilité alimentaire et HACCP. Analyse cette photo d'un produit alimentaire (emballage, étiquette, produit brut, bon de livraison, etc.) et extrais le MAXIMUM d'informations possibles.
+    // Fetch the image and convert to base64
+    const imgResponse = await fetch(image_url);
+    if (!imgResponse.ok) throw new Error("Failed to fetch image");
+    const imgBuffer = await imgResponse.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+    const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
+    const mediaType = contentType.split(";")[0].trim() as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+    const systemPrompt = `Tu es un expert en traçabilité alimentaire et HACCP. Analyse cette photo d'un produit alimentaire (emballage, étiquette, produit brut, bon de livraison, etc.) et extrais le MAXIMUM d'informations possibles.
 
 Extrais :
 - nom : nom du produit (obligatoire, déduis-le si besoin)
@@ -45,51 +42,45 @@ Extrais :
 - allergenes : allergènes identifiés (si visible)
 - observations : toute autre info pertinente pour la traçabilité
 
-Aujourd'hui : ${today}`
-          },
+Réponds UNIQUEMENT avec un JSON valide contenant ces champs. Les champs non trouvés doivent être des chaînes vides.
+Aujourd'hui : ${today}`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [
           {
             role: "user",
             content: [
-              { type: "text", text: "Analyse cette photo de produit alimentaire et extrais toutes les informations de traçabilité visibles." },
-              { type: "image_url", image_url: { url: image_url } }
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: mediaType,
+                  data: base64,
+                },
+              },
+              {
+                type: "text",
+                text: "Analyse cette photo de produit alimentaire et extrais toutes les informations de traçabilité visibles."
+              }
             ]
           }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_product_info",
-              description: "Extract traceability information from a food product photo",
-              parameters: {
-                type: "object",
-                properties: {
-                  nom: { type: "string", description: "Product name" },
-                  categorie: { type: "string", enum: categories },
-                  fab: { type: "string", description: "Fabrication date YYYY-MM-DD or empty" },
-                  dlc: { type: "string", description: "DLC date YYYY-MM-DD or empty" },
-                  lot: { type: "string", description: "Lot number or empty" },
-                  fournisseur: { type: "string", description: "Supplier/brand or empty" },
-                  poids: { type: "string", description: "Weight/quantity or empty" },
-                  temperature: { type: "string", description: "Temperature or empty" },
-                  origine: { type: "string", description: "Origin country/region or empty" },
-                  ingredients: { type: "string", description: "Summarized ingredients or empty" },
-                  allergenes: { type: "string", description: "Allergens or empty" },
-                  observations: { type: "string", description: "Other relevant info or empty" }
-                },
-                required: ["nom", "categorie"],
-                additionalProperties: false
-              }
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "extract_product_info" } }
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
+      console.error("Anthropic API error:", response.status, errText);
       return new Response(JSON.stringify({ error: "AI service error" }), {
         status: response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -97,10 +88,11 @@ Aujourd'hui : ${today}`
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const content = data.content?.[0]?.text || "";
 
-    if (toolCall?.function?.arguments) {
-      const result = JSON.parse(toolCall.function.arguments);
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

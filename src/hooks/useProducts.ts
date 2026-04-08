@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import imageCompression from "browser-image-compression";
 
 export interface Product {
   id: string;
@@ -10,6 +11,12 @@ export interface Product {
   quantite: string;
   photo_url: string;
 }
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.3,
+  maxWidthOrHeight: 800,
+  useWebWorker: true,
+};
 
 export function useProducts(userId: string | undefined) {
   const [produits, setProduits] = useState<Product[]>([]);
@@ -48,12 +55,19 @@ export function useProducts(userId: string | undefined) {
 
   const uploadPhoto = async (file: File): Promise<string | null> => {
     if (!userId) return null;
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("product-photos").upload(path, file);
-    if (uploadError) { setError("Erreur lors de l'envoi de la photo."); return null; }
-    const { data } = supabase.storage.from("product-photos").getPublicUrl(path);
-    return data.publicUrl;
+    try {
+      // Compress image before upload
+      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("product-photos").upload(path, compressed);
+      if (uploadError) { setError("Erreur lors de l'envoi de la photo."); return null; }
+      const { data } = supabase.storage.from("product-photos").getPublicUrl(path);
+      return data.publicUrl;
+    } catch {
+      setError("Erreur lors de la compression/envoi de la photo.");
+      return null;
+    }
   };
 
   const addProduct = async (product: Omit<Product, "id">) => {

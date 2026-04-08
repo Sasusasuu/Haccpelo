@@ -2,17 +2,28 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/components/LoginPage";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Dashboard from "@/components/dashboard/Dashboard";
-import DLCModule from "@/components/haccp/DLCModule";
-import TemperaturesModule from "@/components/haccp/TemperaturesModule";
-import CleaningModule from "@/components/haccp/CleaningModule";
-import HACCPSettings from "@/components/haccp/HACCPSettings";
-import PlanningModule from "@/components/equipe/PlanningModule";
-import TimeclockModule from "@/components/equipe/TimeclockModule";
-import TeamSettings from "@/components/equipe/TeamSettings";
-import MemosModule from "@/components/equipe/MemosModule";
+import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
+import { TableSkeleton } from "@/components/ui/loading-skeletons";
+
+const Dashboard = lazy(() => import("@/components/dashboard/Dashboard"));
+const DLCModule = lazy(() => import("@/components/haccp/DLCModule"));
+const TemperaturesModule = lazy(() => import("@/components/haccp/TemperaturesModule"));
+const CleaningModule = lazy(() => import("@/components/haccp/CleaningModule"));
+const HACCPSettings = lazy(() => import("@/components/haccp/HACCPSettings"));
+const PlanningModule = lazy(() => import("@/components/equipe/PlanningModule"));
+const TimeclockModule = lazy(() => import("@/components/equipe/TimeclockModule"));
+const TeamSettings = lazy(() => import("@/components/equipe/TeamSettings"));
+const MemosModule = lazy(() => import("@/components/equipe/MemosModule"));
+
+function ModuleFallback() {
+  return (
+    <div className="space-y-4 p-4">
+      <TableSkeleton rows={6} cols={5} />
+    </div>
+  );
+}
 
 function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const { equipments, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
@@ -20,18 +31,20 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
 
   return (
     <AppLayout onSignOut={onSignOut}>
-      <Routes>
-        <Route path="/" element={<Dashboard userId={userId} />} />
-        <Route path="/haccp/dlc" element={<DLCModule userId={userId} />} />
-        <Route path="/haccp/temperatures" element={<TemperaturesModule userId={userId} equipmentsList={equipments} />} />
-        <Route path="/haccp/nettoyage" element={<CleaningModule userId={userId} cleaningTasks={cleaningTasks} cleaningLogs={cleaningLogs} logCleaningDone={logCleaningDone} deleteCleaningLog={deleteCleaningLog} loading={cleanLoading} error={cleanError} onRetry={cleanRetry} />} />
-        <Route path="/haccp/parametres" element={<HACCPSettings userId={userId} equipmentsList={equipments} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />} />
-        <Route path="/equipe/planning" element={<PlanningModule userId={userId} />} />
-        <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
-        <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
-        <Route path="/equipe/parametres" element={<TeamSettings userId={userId} onSignOut={onSignOut} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<ModuleFallback />}>
+        <Routes>
+          <Route path="/" element={<Dashboard userId={userId} />} />
+          <Route path="/haccp/dlc" element={<DLCModule userId={userId} />} />
+          <Route path="/haccp/temperatures" element={<TemperaturesModule userId={userId} equipmentsList={equipments} />} />
+          <Route path="/haccp/nettoyage" element={<CleaningModule userId={userId} cleaningTasks={cleaningTasks} cleaningLogs={cleaningLogs} logCleaningDone={logCleaningDone} deleteCleaningLog={deleteCleaningLog} loading={cleanLoading} error={cleanError} onRetry={cleanRetry} />} />
+          <Route path="/haccp/parametres" element={<HACCPSettings userId={userId} equipmentsList={equipments} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />} />
+          <Route path="/equipe/planning" element={<PlanningModule userId={userId} />} />
+          <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
+          <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
+          <Route path="/equipe/parametres" element={<TeamSettings userId={userId} onSignOut={onSignOut} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AppLayout>
   );
 }
