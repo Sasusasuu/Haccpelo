@@ -9,8 +9,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
