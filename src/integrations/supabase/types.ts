@@ -313,6 +313,7 @@ export type Database = {
           created_at: string
           id: string
           manager_pin_hash: string | null
+          planning_session_minutes: number
           updated_at: string
           user_id: string
         }
@@ -320,6 +321,7 @@ export type Database = {
           created_at?: string
           id?: string
           manager_pin_hash?: string | null
+          planning_session_minutes?: number
           updated_at?: string
           user_id: string
         }
@@ -327,6 +329,7 @@ export type Database = {
           created_at?: string
           id?: string
           manager_pin_hash?: string | null
+          planning_session_minutes?: number
           updated_at?: string
           user_id?: string
         }
