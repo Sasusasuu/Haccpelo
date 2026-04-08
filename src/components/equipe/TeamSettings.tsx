@@ -26,7 +26,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
   const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
-  const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog } = useAuditLog(userId);
+  const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog, exportCSV } = useAuditLog(userId);
 
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
@@ -60,7 +60,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       setCurrentManagerId(manager.id);
       setSettingsPin("");
       setPinError(false);
-      auditLog("settings_unlocked", `Paramètres déverrouillés par ${manager.name}`, manager.id);
+      auditLog("settings_unlocked", `Paramètres déverrouillés par ${manager.name}`, manager.id, manager.name);
       return;
     }
     // Fallback: legacy manager PIN
@@ -90,49 +90,49 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   async function handleAddEmployee() {
     if (!newEmp.trim()) return;
     await addEmployee(newEmp.trim());
-    await auditLog("employee_added", `Ajout employé "${newEmp.trim()}"`, currentManagerId);
+    await auditLog("employee_added", `Ajout employé "${newEmp.trim()}"`, currentManagerId, currentManagerName);
     setNewEmp("");
   }
 
   async function handleDeleteEmployee(emp: { id: string; name: string }) {
     await deleteEmployee(emp.id);
-    await auditLog("employee_deleted", `Suppression employé "${emp.name}"`, currentManagerId);
+    await auditLog("employee_deleted", `Suppression employé "${emp.name}"`, currentManagerId, currentManagerName);
   }
 
   async function handleUpdateEmployee(empId: string, empName: string, updates: Record<string, unknown>, fieldLabel: string) {
     await updateEmployee(empId, updates as Parameters<typeof updateEmployee>[1]);
-    await auditLog("employee_updated", `Modification ${fieldLabel} de "${empName}"`, currentManagerId);
+    await auditLog("employee_updated", `Modification ${fieldLabel} de "${empName}"`, currentManagerId, currentManagerName);
   }
 
   async function handleSetPin(empId: string, empName: string) {
     if (empPinValue.length !== 4) return;
     await updateEmployee(empId, { pin_hash: hashEmployeePin(empPinValue) });
-    await auditLog("employee_pin_changed", `PIN modifié pour "${empName}"`, currentManagerId);
+    await auditLog("employee_pin_changed", `PIN modifié pour "${empName}"`, currentManagerId, currentManagerName);
     setEmpPinEdit(null);
     setEmpPinValue("");
   }
 
   async function handleToggleManager(emp: { id: string; name: string; is_manager: boolean }) {
     await updateEmployee(emp.id, { is_manager: !emp.is_manager });
-    await auditLog("employee_role_changed", `${emp.name} ${!emp.is_manager ? "promu manager" : "retiré du rôle manager"}`, currentManagerId);
+    await auditLog("employee_role_changed", `${emp.name} ${!emp.is_manager ? "promu manager" : "retiré du rôle manager"}`, currentManagerId, currentManagerName);
   }
 
   async function handleAddRole() {
     if (!newRoleLabel.trim()) return;
     await addRole(newRoleLabel.trim(), newRoleColor);
-    await auditLog("role_added", `Ajout rôle "${newRoleLabel.trim()}"`, currentManagerId);
+    await auditLog("role_added", `Ajout rôle "${newRoleLabel.trim()}"`, currentManagerId, currentManagerName);
     setNewRoleLabel("");
   }
 
   async function handleUpdateRole(roleId: string) {
     await updateRole(roleId, { label: editRoleLabel, color: editRoleColor });
-    await auditLog("role_updated", `Modification rôle "${editRoleLabel}"`, currentManagerId);
+    await auditLog("role_updated", `Modification rôle "${editRoleLabel}"`, currentManagerId, currentManagerName);
     setEditRoleId(null);
   }
 
   async function handleDeleteRole(r: { id: string; label: string }) {
     await deleteRole(r.id);
-    await auditLog("role_deleted", `Suppression rôle "${r.label}"`, currentManagerId);
+    await auditLog("role_deleted", `Suppression rôle "${r.label}"`, currentManagerId, currentManagerName);
   }
 
   async function exportComptable() {
@@ -239,43 +239,26 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       });
 
       doc.save(`export_comptable_${monthNames[month - 1]}_${year}.pdf`);
-      await auditLog("export_comptable", `Export comptable ${monthNames[month - 1]} ${year}`, currentManagerId);
+      await auditLog("export_comptable", `Export comptable ${monthNames[month - 1]} ${year}`, currentManagerId, currentManagerName);
     } finally {
       setExporting(false);
     }
   }
 
-  const ACTION_LABELS: Record<string, string> = {
-    settings_unlocked: "🔓 Déverrouillage",
-    employee_added: "👤+ Ajout employé",
-    employee_deleted: "👤- Suppression employé",
-    employee_updated: "✏️ Modif. employé",
-    employee_pin_changed: "🔑 PIN modifié",
-    employee_role_changed: "🛡️ Rôle modifié",
-    role_added: "🎯+ Ajout rôle",
-    role_updated: "🎯 Modif. rôle",
-    role_deleted: "🎯- Suppression rôle",
-    export_comptable: "📊 Export comptable",
-    clock_in: "▶️ Pointage arrivée",
-    clock_out: "⏹️ Pointage départ",
-    memo_added: "📝+ Mémo ajouté",
-    memo_deleted: "📝- Mémo supprimé",
-    planning_slot_added: "📅+ Créneau ajouté",
-    planning_slot_deleted: "📅- Créneau supprimé",
-    planning_week_copied: "📅 Sem. copiée",
-    planning_unlocked: "🔓 Planning déverrouillé",
-    manager_pin_changed: "🔐 Code manager modifié",
-    temp_logged: "🌡️ Température relevée",
-    temp_deleted: "🌡️- Température supprimée",
-    cleaning_done: "🧹 Nettoyage validé",
-    product_added: "📦+ Produit ajouté",
-    product_updated: "📦 Produit modifié",
-    product_deleted: "📦- Produit supprimé",
-    session_duration_changed: "⏱️ Durée session modifiée",
+  const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+    badgeuse: { label: "Badgeuse", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+    dlc: { label: "DLC", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
+    haccp: { label: "HACCP", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+    planning: { label: "Planning", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+    parametres: { label: "Paramètres", color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
+    memos: { label: "Notes", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
+    general: { label: "Général", color: "bg-muted text-muted-foreground" },
   };
 
-  const actionTypes = [...new Set(auditLogs.map(l => l.action_type))];
-  const filteredLogs = auditFilter === "all" ? auditLogs : auditLogs.filter(l => l.action_type === auditFilter);
+  const categories = [...new Set(auditLogs.map(l => l.category))];
+  const filteredLogs = auditFilter === "all"
+    ? auditLogs
+    : auditLogs.filter(l => l.category === auditFilter);
 
   if (!settingsUnlocked) {
     const managers = employees.filter(e => e.is_manager && e.pin_hash);
@@ -313,7 +296,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
             <Button variant="outline" onClick={async () => {
               if (newPin.length === 4) {
                 await changePin(newPin);
-                await auditLog("manager_pin_changed", "Code manager legacy modifié", currentManagerId);
+                await auditLog("manager_pin_changed", "Code manager legacy modifié", currentManagerId, currentManagerName);
                 setNewPin("");
               }
             }}>Enregistrer</Button>
@@ -469,7 +452,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
               const v = parseInt(e.target.value);
               if (v >= 1 && v <= 60) {
                 await updateSessionMinutes(v);
-                await auditLog("session_duration_changed", `Durée session modifiée : ${v} min`, currentManagerId);
+                await auditLog("session_duration_changed", `Durée session modifiée : ${v} min`, currentManagerId, currentManagerName);
               }
             }} className="w-20 h-9 text-center" />
             <span className="text-sm text-muted-foreground">minutes</span>
@@ -503,23 +486,29 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2"><ScrollText className="h-4 w-4" /> Journal d'activité</CardTitle>
-            <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAuditLog(v => !v)}>
-              {showAuditLog ? <><EyeOff className="h-3 w-3 mr-1" />Masquer</> : <><Eye className="h-3 w-3 mr-1" />Afficher</>}
-            </Button>
+            <CardTitle className="text-sm flex items-center gap-2"><ScrollText className="h-4 w-4" /> Historique des activités</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="text-xs" onClick={exportCSV}>
+                <Download className="h-3 w-3 mr-1" />Exporter CSV
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAuditLog(v => !v)}>
+                {showAuditLog ? <><EyeOff className="h-3 w-3 mr-1" />Masquer</> : <><Eye className="h-3 w-3 mr-1" />Afficher</>}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <Collapsible open={showAuditLog} onOpenChange={setShowAuditLog}>
           <CollapsibleContent>
             <CardContent className="space-y-3">
-              {actionTypes.length > 1 && (
+              {categories.length > 1 && (
                 <Select value={auditFilter} onValueChange={setAuditFilter}>
                   <SelectTrigger className="w-[220px] h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Toutes les actions</SelectItem>
-                    {actionTypes.map(t => (
-                      <SelectItem key={t} value={t}>{ACTION_LABELS[t] ?? t}</SelectItem>
-                    ))}
+                    <SelectItem value="all">Toutes les catégories</SelectItem>
+                    {categories.map(c => {
+                      const cat = CATEGORY_LABELS[c];
+                      return <SelectItem key={c} value={c}>{cat?.label ?? c}</SelectItem>;
+                    })}
                   </SelectContent>
                 </Select>
               )}
@@ -528,17 +517,22 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
               ) : filteredLogs.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucune activité enregistrée.</p>
               ) : (
-                <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                <div className="space-y-1 max-h-[500px] overflow-y-auto">
                   {filteredLogs.map(entry => {
-                    const emp = entry.employee_id ? employees.find(e => e.id === entry.employee_id) : null;
+                    const catInfo = CATEGORY_LABELS[entry.category] ?? CATEGORY_LABELS.general;
                     return (
                       <div key={entry.id} className="flex items-start gap-2 p-2 rounded text-xs bg-muted/30 hover:bg-muted/50">
                         <span className="text-muted-foreground whitespace-nowrap shrink-0">
                           {new Date(entry.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}{" "}
                           {new Date(entry.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
+                        <Badge variant="secondary" className={`text-[10px] shrink-0 ${catInfo.color}`}>
+                          {catInfo.label}
+                        </Badge>
                         <span className="flex-1">{entry.description}</span>
-                        {emp && <Badge variant="secondary" className="text-[10px] shrink-0">{emp.name}</Badge>}
+                        {entry.employee_name && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">{entry.employee_name}</Badge>
+                        )}
                       </div>
                     );
                   })}
@@ -547,7 +541,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
               {hasMore && !auditLoading && (
                 <Button variant="ghost" size="sm" className="w-full text-xs" onClick={loadMore}>Charger plus…</Button>
               )}
-              <p className="text-xs text-muted-foreground italic">📌 Les logs ne peuvent pas être supprimés (traçabilité).</p>
+              <p className="text-xs text-muted-foreground italic">📌 Les logs sont conservés 90 jours (nettoyage automatique).</p>
             </CardContent>
           </CollapsibleContent>
         </Collapsible>

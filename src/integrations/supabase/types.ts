@@ -17,25 +17,31 @@ export type Database = {
       audit_logs: {
         Row: {
           action_type: string
+          category: string
           created_at: string
           description: string
           employee_id: string | null
+          employee_name: string | null
           id: string
           user_id: string
         }
         Insert: {
           action_type: string
+          category?: string
           created_at?: string
           description: string
           employee_id?: string | null
+          employee_name?: string | null
           id?: string
           user_id: string
         }
         Update: {
           action_type?: string
+          category?: string
           created_at?: string
           description?: string
           employee_id?: string | null
+          employee_name?: string | null
           id?: string
           user_id?: string
         }
@@ -411,7 +417,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_audit_logs: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

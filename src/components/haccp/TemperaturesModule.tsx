@@ -56,7 +56,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
     if (isNaN(temp)) return;
     requireAuth(async () => {
       await addLog({ equipment_name: equip, period, temperature: temp, log_date: selectedDate });
-      await auditLog("temp_logged", `Température ${equip} ${period} : ${temp > 0 ? "+" : ""}${temp}°C`, identifiedEmployee?.id ?? null);
+      await auditLog("temp_logged", `Température ${equip} ${period} : ${temp > 0 ? "+" : ""}${temp}°C`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
       setTemps(prev => { const n = { ...prev }; delete n[key]; return n; });
     });
   };
@@ -64,7 +64,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
   const handleDelete = (logId: string, equipName: string, period: string) => {
     requireAuth(async () => {
       await deleteLog(logId);
-      await auditLog("temp_deleted", `Suppression relevé ${equipName} ${period}`, identifiedEmployee?.id ?? null);
+      await auditLog("temp_deleted", `Suppression relevé ${equipName} ${period}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
     });
   };
 

@@ -83,10 +83,10 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
       const { isIn, openEntry } = getEmployeeStatus(pinModal.emp.id);
       if (isIn && openEntry) {
         await clockOut(openEntry.id);
-        await auditLog("clock_out", `Fin de shift — ${emp.name}`, emp.id);
+        await auditLog("clock_out", `Fin de shift — ${emp.name}`, emp.id, emp.name);
       } else {
         await clockIn(pinModal.emp.id);
-        await auditLog("clock_in", `Début de shift — ${emp.name}`, emp.id);
+        await auditLog("clock_in", `Début de shift — ${emp.name}`, emp.id, emp.name);
       }
       setPinModal(null); setPinInput("");
     } else {
@@ -132,11 +132,11 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
 
         if (isIn && openEntry) {
           await clockOut(openEntry.id);
-          await auditLog("clock_out", `Fin de shift (badge NFC) — ${emp.name}`, emp.id);
+          await auditLog("clock_out", `Fin de shift (badge NFC) — ${emp.name}`, emp.id, emp.name);
           setNfcResult({ empName: emp.name, time: timeStr, action: "Fin de shift" });
         } else {
           await clockIn(emp.id);
-          await auditLog("clock_in", `Début de shift (badge NFC) — ${emp.name}`, emp.id);
+          await auditLog("clock_in", `Début de shift (badge NFC) — ${emp.name}`, emp.id, emp.name);
           setNfcResult({ empName: emp.name, time: timeStr, action: "Début de shift" });
         }
       });
