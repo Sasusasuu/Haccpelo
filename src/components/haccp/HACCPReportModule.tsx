@@ -67,25 +67,41 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
   }), [produits, firstDay, lastDay]);
   const expiredProducts = monthProducts.filter(p => p.dlc <= lastDay && p.dlc <= new Date().toISOString().split("T")[0]);
 
-  const conformityScore = useMemo(() => {
-    let score = 100;
-    // Temp alerts penalty
-    if (monthTempLogs.length > 0) {
-      const alertRate = tempAlerts.length / monthTempLogs.length;
-      score -= alertRate * 40;
-    }
-    // Cleaning compliance
-    if (expectedCleaningTotal > 0) {
-      const cleanRate = Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1);
-      score -= (1 - cleanRate) * 30;
-    }
-    // Expired products penalty
-    if (monthProducts.length > 0) {
-      const expiredRate = expiredProducts.length / monthProducts.length;
-      score -= expiredRate * 30;
-    }
-    return Math.max(0, Math.round(score));
-  }, [monthTempLogs, tempAlerts, monthCleaningLogs, expectedCleaningTotal, monthProducts, expiredProducts]);
+  // --- Alim'Confiance: grille officielle DGAL à 4 niveaux ---
+  // Basé sur Règlement (CE) n°852/2004 et instructions DGAL
+  // Domaines évalués: Températures (impact très élevé), Nettoyage (élevé), Traçabilité DLC (élevé)
+  const tempAlertRate = monthTempLogs.length > 0 ? tempAlerts.length / monthTempLogs.length : 0;
+  const cleaningRate = expectedCleaningTotal > 0 ? Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1) : 1;
+  const expiredRate = monthProducts.length > 0 ? expiredProducts.length / monthProducts.length : 0;
+  const hasNoData = monthTempLogs.length === 0 && expectedCleaningTotal === 0 && monthProducts.length === 0;
+
+  const alimConfianceLevel = useMemo((): "tres_satisfaisant" | "satisfaisant" | "a_ameliorer" | "a_corriger" => {
+    if (hasNoData) return "satisfaisant";
+
+    // "À corriger de manière urgente": non-conformités graves
+    // >10% alertes temp OU >10% produits expirés OU nettoyage <50%
+    if (tempAlertRate > 0.10 || expiredRate > 0.10 || cleaningRate < 0.50) return "a_corriger";
+
+    // "À améliorer": non-conformités nécessitant des mesures correctives
+    // >5% alertes temp OU >5% produits expirés OU nettoyage <75%
+    if (tempAlertRate > 0.05 || expiredRate > 0.05 || cleaningRate < 0.75) return "a_ameliorer";
+
+    // "Satisfaisant": non-conformités mineures
+    // >0 alertes temp OU >0 produits expirés OU nettoyage <90%
+    if (tempAlerts.length > 0 || expiredProducts.length > 0 || cleaningRate < 0.90) return "satisfaisant";
+
+    // "Très satisfaisant": conformité totale
+    return "tres_satisfaisant";
+  }, [tempAlertRate, cleaningRate, expiredRate, tempAlerts.length, expiredProducts.length, hasNoData]);
+
+  const ALIM_LEVELS = {
+    tres_satisfaisant: { label: "Très satisfaisant", emoji: "😊", color: "text-green-600", bg: "bg-green-100 dark:bg-green-950/30", border: "border-green-500" },
+    satisfaisant: { label: "Satisfaisant", emoji: "🙂", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/20", border: "border-green-400" },
+    a_ameliorer: { label: "À améliorer", emoji: "😐", color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950/20", border: "border-yellow-500" },
+    a_corriger: { label: "À corriger de manière urgente", emoji: "😟", color: "text-destructive", bg: "bg-red-50 dark:bg-red-950/20", border: "border-destructive" },
+  } as const;
+
+  const currentLevel = ALIM_LEVELS[alimConfianceLevel];
 
   // --- PDF Generation ---
   async function generatePDF() {
@@ -123,7 +139,7 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
         ["Relevés de températures", `${monthTempLogs.length} relevés — ${tempAlerts.length} alerte(s)`, tempAlerts.length === 0 ? "✅ Conforme" : "⚠️ Non-conformités"],
         ["Plan de nettoyage", `${monthCleaningLogs.length} validations / ~${expectedCleaningTotal} attendues`, monthCleaningLogs.length >= expectedCleaningTotal * 0.8 ? "✅ Conforme" : "⚠️ Incomplet"],
         ["Gestion des DLC", `${monthProducts.length} produits suivis — ${expiredProducts.length} expiré(s)`, expiredProducts.length === 0 ? "✅ Conforme" : "⚠️ Produits expirés"],
-        ["Score global", `${conformityScore}%`, conformityScore >= 80 ? "✅ Satisfaisant" : conformityScore >= 60 ? "⚠️ À améliorer" : "❌ Insuffisant"],
+        ["Notation Alim'Confiance", `${ALIM_LEVELS[alimConfianceLevel].emoji} ${ALIM_LEVELS[alimConfianceLevel].label}`, alimConfianceLevel === "tres_satisfaisant" || alimConfianceLevel === "satisfaisant" ? "✅ Conforme" : alimConfianceLevel === "a_ameliorer" ? "⚠️ Mesures correctives" : "❌ Urgent"],
       ];
       autoTable(doc, {
         head: [summaryData[0]],
@@ -365,18 +381,19 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
 
       {/* Preview cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className={`${currentLevel.border} border`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Score conformité</CardTitle>
+            <CardTitle className="text-sm font-medium">Alim'Confiance</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold ${conformityScore >= 80 ? "text-green-600" : conformityScore >= 60 ? "text-yellow-600" : "text-destructive"}`}>
-              {conformityScore}%
+            <div className="flex items-center gap-2">
+              <span className="text-3xl">{currentLevel.emoji}</span>
+              <div>
+                <div className={`text-sm font-bold ${currentLevel.color}`}>{currentLevel.label}</div>
+                <p className="text-xs text-muted-foreground">Grille officielle DGAL</p>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {conformityScore >= 80 ? "Satisfaisant" : conformityScore >= 60 ? "À améliorer" : "Insuffisant"}
-            </p>
           </CardContent>
         </Card>
 
@@ -437,80 +454,118 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
         </Card>
       </div>
 
-      {/* Score breakdown */}
+      {/* Grille Alim'Confiance - explication */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Shield className="h-5 w-5 text-muted-foreground" />
-            Comment est calculé le score de conformité ?
+            Notation Alim'Confiance — Comment est-elle déterminée ?
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Le score part de <span className="font-semibold text-foreground">100 %</span> puis des pénalités sont appliquées selon 3 critères :
+            La notation s'appuie sur la <span className="font-semibold text-foreground">grille officielle Alim'Confiance</span> (DGAL — Ministère de l'Agriculture),
+            qui évalue les établissements sur la base du <span className="font-semibold text-foreground">Règlement (CE) n°852/2004</span>.
+            L'application analyse automatiquement 3 des domaines inspectés :
           </p>
+
+          {/* 3 domain cards */}
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border p-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <Thermometer className="h-4 w-4 text-blue-500" />
                 <span className="text-sm font-medium">Températures</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Impact très élevé</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">40 %</span></p>
-              <p className="text-xs text-muted-foreground">Pénalité = (alertes / relevés) × 40</p>
-              <p className="text-xs mt-1">
+              <p className="text-xs text-muted-foreground">
+                Normes : réfrigérateurs 0°C à +{TEMP_THRESHOLD_FRIDGE}°C, congélateurs ≤ {TEMP_THRESHOLD_FREEZER}°C
+              </p>
+              <p className="text-xs">
                 Ce mois : {monthTempLogs.length > 0
                   ? <span className={tempAlerts.length === 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>
                       {tempAlerts.length} alerte{tempAlerts.length > 1 ? "s" : ""} / {monthTempLogs.length} relevé{monthTempLogs.length > 1 ? "s" : ""}
-                      {" → −"}{monthTempLogs.length > 0 ? Math.round((tempAlerts.length / monthTempLogs.length) * 40) : 0} pts
+                      {" ("}{(tempAlertRate * 100).toFixed(1)}%)
                     </span>
                   : <span className="text-muted-foreground">aucun relevé</span>
                 }
               </p>
             </div>
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border p-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <SprayCan className="h-4 w-4 text-green-500" />
                 <span className="text-sm font-medium">Nettoyage</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Impact élevé</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">30 %</span></p>
-              <p className="text-xs text-muted-foreground">Pénalité = (1 − validations/attendues) × 30</p>
-              <p className="text-xs mt-1">
+              <p className="text-xs text-muted-foreground">
+                Plan de nettoyage et désinfection conforme au PMS
+              </p>
+              <p className="text-xs">
                 {expectedCleaningTotal > 0
-                  ? <span className={monthCleaningLogs.length >= expectedCleaningTotal ? "text-green-600 font-medium" : "text-yellow-600 font-medium"}>
-                      {monthCleaningLogs.length} / {expectedCleaningTotal} attendues
-                      {" → −"}{Math.round((1 - Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1)) * 30)} pts
+                  ? <span className={cleaningRate >= 0.90 ? "text-green-600 font-medium" : cleaningRate >= 0.75 ? "text-yellow-600 font-medium" : "text-destructive font-medium"}>
+                      {monthCleaningLogs.length} / {expectedCleaningTotal} attendues ({(cleaningRate * 100).toFixed(0)}%)
                     </span>
                   : <span className="text-muted-foreground">aucune tâche configurée</span>
                 }
               </p>
             </div>
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border p-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <ClipboardCheck className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium">DLC</span>
+                <span className="text-sm font-medium">Traçabilité DLC</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Impact élevé</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">30 %</span></p>
-              <p className="text-xs text-muted-foreground">Pénalité = (expirés / total produits) × 30</p>
-              <p className="text-xs mt-1">
+              <p className="text-xs text-muted-foreground">
+                Suivi des dates limites de consommation
+              </p>
+              <p className="text-xs">
                 {monthProducts.length > 0
                   ? <span className={expiredProducts.length === 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>
                       {expiredProducts.length} expiré{expiredProducts.length > 1 ? "s" : ""} / {monthProducts.length} produit{monthProducts.length > 1 ? "s" : ""}
-                      {" → −"}{Math.round((expiredProducts.length / monthProducts.length) * 30)} pts
+                      {" ("}{(expiredRate * 100).toFixed(1)}%)
                     </span>
                   : <span className="text-muted-foreground">aucun produit suivi</span>
                 }
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 pt-2 border-t">
-            <span className="text-sm font-medium">Résultat :</span>
-            <span className={`text-lg font-bold ${conformityScore >= 80 ? "text-green-600" : conformityScore >= 60 ? "text-yellow-600" : "text-destructive"}`}>
-              100 − {100 - conformityScore} = {conformityScore} %
-            </span>
-            <Badge variant={conformityScore >= 80 ? "outline" : "destructive"} className={conformityScore >= 80 ? "border-green-500 text-green-600" : ""}>
-              {conformityScore >= 80 ? "Satisfaisant" : conformityScore >= 60 ? "À améliorer" : "Insuffisant"}
-            </Badge>
+
+          {/* 4 levels explanation */}
+          <div className="border-t pt-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Les 4 niveaux officiels</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {([
+                { key: "tres_satisfaisant", seuil: "0 alerte, nettoyage ≥ 90%, 0 produit expiré" },
+                { key: "satisfaisant", seuil: "Alertes temp ≤ 5%, nettoyage ≥ 75%, expirés ≤ 5%" },
+                { key: "a_ameliorer", seuil: "Alertes temp ≤ 10%, nettoyage ≥ 50%, expirés ≤ 10%" },
+                { key: "a_corriger", seuil: "Alertes temp > 10% ou nettoyage < 50% ou expirés > 10%" },
+              ] as const).map(({ key, seuil }) => {
+                const lvl = ALIM_LEVELS[key];
+                const isActive = alimConfianceLevel === key;
+                return (
+                  <div key={key} className={`rounded-lg border p-2.5 flex items-start gap-2.5 ${isActive ? `${lvl.bg} ${lvl.border} border-2` : "opacity-60"}`}>
+                    <span className="text-xl leading-none mt-0.5">{lvl.emoji}</span>
+                    <div>
+                      <p className={`text-sm font-medium ${isActive ? lvl.color : ""}`}>{lvl.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{seuil}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Result */}
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <span className="text-sm font-medium">Votre niveau ce mois :</span>
+            <span className="text-xl">{currentLevel.emoji}</span>
+            <span className={`text-lg font-bold ${currentLevel.color}`}>{currentLevel.label}</span>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground border-t pt-2">
+            ⚠️ Cette notation est une estimation basée sur les données enregistrées dans l'application (températures, nettoyage, DLC).
+            L'inspection officielle DDPP couvre également l'hygiène des locaux, la formation du personnel, la lutte contre les nuisibles et la conformité documentaire du PMS,
+            qui ne sont pas encore suivis ici. Réf. : Règlement (CE) n°852/2004, instructions DGAL, dispositif Alim'Confiance.
+          </p>
         </CardContent>
       </Card>
 
