@@ -454,80 +454,118 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
         </Card>
       </div>
 
-      {/* Score breakdown */}
+      {/* Grille Alim'Confiance - explication */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Shield className="h-5 w-5 text-muted-foreground" />
-            Comment est calculé le score de conformité ?
+            Notation Alim'Confiance — Comment est-elle déterminée ?
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Le score part de <span className="font-semibold text-foreground">100 %</span> puis des pénalités sont appliquées selon 3 critères :
+            La notation s'appuie sur la <span className="font-semibold text-foreground">grille officielle Alim'Confiance</span> (DGAL — Ministère de l'Agriculture),
+            qui évalue les établissements sur la base du <span className="font-semibold text-foreground">Règlement (CE) n°852/2004</span>.
+            L'application analyse automatiquement 3 des domaines inspectés :
           </p>
+
+          {/* 3 domain cards */}
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border p-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <Thermometer className="h-4 w-4 text-blue-500" />
                 <span className="text-sm font-medium">Températures</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Impact très élevé</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">40 %</span></p>
-              <p className="text-xs text-muted-foreground">Pénalité = (alertes / relevés) × 40</p>
-              <p className="text-xs mt-1">
+              <p className="text-xs text-muted-foreground">
+                Normes : réfrigérateurs 0°C à +{TEMP_THRESHOLD_FRIDGE}°C, congélateurs ≤ {TEMP_THRESHOLD_FREEZER}°C
+              </p>
+              <p className="text-xs">
                 Ce mois : {monthTempLogs.length > 0
                   ? <span className={tempAlerts.length === 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>
                       {tempAlerts.length} alerte{tempAlerts.length > 1 ? "s" : ""} / {monthTempLogs.length} relevé{monthTempLogs.length > 1 ? "s" : ""}
-                      {" → −"}{monthTempLogs.length > 0 ? Math.round((tempAlerts.length / monthTempLogs.length) * 40) : 0} pts
+                      {" ("}{(tempAlertRate * 100).toFixed(1)}%)
                     </span>
                   : <span className="text-muted-foreground">aucun relevé</span>
                 }
               </p>
             </div>
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border p-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <SprayCan className="h-4 w-4 text-green-500" />
                 <span className="text-sm font-medium">Nettoyage</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Impact élevé</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">30 %</span></p>
-              <p className="text-xs text-muted-foreground">Pénalité = (1 − validations/attendues) × 30</p>
-              <p className="text-xs mt-1">
+              <p className="text-xs text-muted-foreground">
+                Plan de nettoyage et désinfection conforme au PMS
+              </p>
+              <p className="text-xs">
                 {expectedCleaningTotal > 0
-                  ? <span className={monthCleaningLogs.length >= expectedCleaningTotal ? "text-green-600 font-medium" : "text-yellow-600 font-medium"}>
-                      {monthCleaningLogs.length} / {expectedCleaningTotal} attendues
-                      {" → −"}{Math.round((1 - Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1)) * 30)} pts
+                  ? <span className={cleaningRate >= 0.90 ? "text-green-600 font-medium" : cleaningRate >= 0.75 ? "text-yellow-600 font-medium" : "text-destructive font-medium"}>
+                      {monthCleaningLogs.length} / {expectedCleaningTotal} attendues ({(cleaningRate * 100).toFixed(0)}%)
                     </span>
                   : <span className="text-muted-foreground">aucune tâche configurée</span>
                 }
               </p>
             </div>
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border p-3 space-y-1.5">
               <div className="flex items-center gap-2">
                 <ClipboardCheck className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium">DLC</span>
+                <span className="text-sm font-medium">Traçabilité DLC</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Impact élevé</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">30 %</span></p>
-              <p className="text-xs text-muted-foreground">Pénalité = (expirés / total produits) × 30</p>
-              <p className="text-xs mt-1">
+              <p className="text-xs text-muted-foreground">
+                Suivi des dates limites de consommation
+              </p>
+              <p className="text-xs">
                 {monthProducts.length > 0
                   ? <span className={expiredProducts.length === 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>
                       {expiredProducts.length} expiré{expiredProducts.length > 1 ? "s" : ""} / {monthProducts.length} produit{monthProducts.length > 1 ? "s" : ""}
-                      {" → −"}{Math.round((expiredProducts.length / monthProducts.length) * 30)} pts
+                      {" ("}{(expiredRate * 100).toFixed(1)}%)
                     </span>
                   : <span className="text-muted-foreground">aucun produit suivi</span>
                 }
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 pt-2 border-t">
-            <span className="text-sm font-medium">Résultat :</span>
-            <span className={`text-lg font-bold ${conformityScore >= 80 ? "text-green-600" : conformityScore >= 60 ? "text-yellow-600" : "text-destructive"}`}>
-              100 − {100 - conformityScore} = {conformityScore} %
-            </span>
-            <Badge variant={conformityScore >= 80 ? "outline" : "destructive"} className={conformityScore >= 80 ? "border-green-500 text-green-600" : ""}>
-              {conformityScore >= 80 ? "Satisfaisant" : conformityScore >= 60 ? "À améliorer" : "Insuffisant"}
-            </Badge>
+
+          {/* 4 levels explanation */}
+          <div className="border-t pt-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Les 4 niveaux officiels</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {([
+                { key: "tres_satisfaisant", seuil: "0 alerte, nettoyage ≥ 90%, 0 produit expiré" },
+                { key: "satisfaisant", seuil: "Alertes temp ≤ 5%, nettoyage ≥ 75%, expirés ≤ 5%" },
+                { key: "a_ameliorer", seuil: "Alertes temp ≤ 10%, nettoyage ≥ 50%, expirés ≤ 10%" },
+                { key: "a_corriger", seuil: "Alertes temp > 10% ou nettoyage < 50% ou expirés > 10%" },
+              ] as const).map(({ key, seuil }) => {
+                const lvl = ALIM_LEVELS[key];
+                const isActive = alimConfianceLevel === key;
+                return (
+                  <div key={key} className={`rounded-lg border p-2.5 flex items-start gap-2.5 ${isActive ? `${lvl.bg} ${lvl.border} border-2` : "opacity-60"}`}>
+                    <span className="text-xl leading-none mt-0.5">{lvl.emoji}</span>
+                    <div>
+                      <p className={`text-sm font-medium ${isActive ? lvl.color : ""}`}>{lvl.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{seuil}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Result */}
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <span className="text-sm font-medium">Votre niveau ce mois :</span>
+            <span className="text-xl">{currentLevel.emoji}</span>
+            <span className={`text-lg font-bold ${currentLevel.color}`}>{currentLevel.label}</span>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground border-t pt-2">
+            ⚠️ Cette notation est une estimation basée sur les données enregistrées dans l'application (températures, nettoyage, DLC).
+            L'inspection officielle DDPP couvre également l'hygiène des locaux, la formation du personnel, la lutte contre les nuisibles et la conformité documentaire du PMS,
+            qui ne sont pas encore suivis ici. Réf. : Règlement (CE) n°852/2004, instructions DGAL, dispositif Alim'Confiance.
+          </p>
         </CardContent>
       </Card>
 
