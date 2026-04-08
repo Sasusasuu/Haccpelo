@@ -67,25 +67,41 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
   }), [produits, firstDay, lastDay]);
   const expiredProducts = monthProducts.filter(p => p.dlc <= lastDay && p.dlc <= new Date().toISOString().split("T")[0]);
 
-  const conformityScore = useMemo(() => {
-    let score = 100;
-    // Temp alerts penalty
-    if (monthTempLogs.length > 0) {
-      const alertRate = tempAlerts.length / monthTempLogs.length;
-      score -= alertRate * 40;
-    }
-    // Cleaning compliance
-    if (expectedCleaningTotal > 0) {
-      const cleanRate = Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1);
-      score -= (1 - cleanRate) * 30;
-    }
-    // Expired products penalty
-    if (monthProducts.length > 0) {
-      const expiredRate = expiredProducts.length / monthProducts.length;
-      score -= expiredRate * 30;
-    }
-    return Math.max(0, Math.round(score));
-  }, [monthTempLogs, tempAlerts, monthCleaningLogs, expectedCleaningTotal, monthProducts, expiredProducts]);
+  // --- Alim'Confiance: grille officielle DGAL à 4 niveaux ---
+  // Basé sur Règlement (CE) n°852/2004 et instructions DGAL
+  // Domaines évalués: Températures (impact très élevé), Nettoyage (élevé), Traçabilité DLC (élevé)
+  const tempAlertRate = monthTempLogs.length > 0 ? tempAlerts.length / monthTempLogs.length : 0;
+  const cleaningRate = expectedCleaningTotal > 0 ? Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1) : 1;
+  const expiredRate = monthProducts.length > 0 ? expiredProducts.length / monthProducts.length : 0;
+  const hasNoData = monthTempLogs.length === 0 && expectedCleaningTotal === 0 && monthProducts.length === 0;
+
+  const alimConfianceLevel = useMemo((): "tres_satisfaisant" | "satisfaisant" | "a_ameliorer" | "a_corriger" => {
+    if (hasNoData) return "satisfaisant";
+
+    // "À corriger de manière urgente": non-conformités graves
+    // >10% alertes temp OU >10% produits expirés OU nettoyage <50%
+    if (tempAlertRate > 0.10 || expiredRate > 0.10 || cleaningRate < 0.50) return "a_corriger";
+
+    // "À améliorer": non-conformités nécessitant des mesures correctives
+    // >5% alertes temp OU >5% produits expirés OU nettoyage <75%
+    if (tempAlertRate > 0.05 || expiredRate > 0.05 || cleaningRate < 0.75) return "a_ameliorer";
+
+    // "Satisfaisant": non-conformités mineures
+    // >0 alertes temp OU >0 produits expirés OU nettoyage <90%
+    if (tempAlerts.length > 0 || expiredProducts.length > 0 || cleaningRate < 0.90) return "satisfaisant";
+
+    // "Très satisfaisant": conformité totale
+    return "tres_satisfaisant";
+  }, [tempAlertRate, cleaningRate, expiredRate, tempAlerts.length, expiredProducts.length, hasNoData]);
+
+  const ALIM_LEVELS = {
+    tres_satisfaisant: { label: "Très satisfaisant", emoji: "😊", color: "text-green-600", bg: "bg-green-100 dark:bg-green-950/30", border: "border-green-500" },
+    satisfaisant: { label: "Satisfaisant", emoji: "🙂", color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/20", border: "border-green-400" },
+    a_ameliorer: { label: "À améliorer", emoji: "😐", color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950/20", border: "border-yellow-500" },
+    a_corriger: { label: "À corriger de manière urgente", emoji: "😟", color: "text-destructive", bg: "bg-red-50 dark:bg-red-950/20", border: "border-destructive" },
+  } as const;
+
+  const currentLevel = ALIM_LEVELS[alimConfianceLevel];
 
   // --- PDF Generation ---
   async function generatePDF() {
