@@ -78,8 +78,9 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
     const emp = employees.find(e => e.id === pinModal.emp.id);
     if (!emp) return;
 
-    // Verify the employee's own PIN
-    if (emp.pin_hash && verifyEmployeePin(emp, pinInput)) {
+    // Verify the employee's own PIN (async — must await)
+    const pinValid = emp.pin_hash ? await verifyEmployeePin(emp, pinInput) : false;
+    if (pinValid) {
       const { isIn, openEntry } = getEmployeeStatus(pinModal.emp.id);
       if (isIn && openEntry) {
         await clockOut(openEntry.id);
