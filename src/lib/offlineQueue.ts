@@ -35,24 +35,22 @@ export async function getPendingCount(): Promise<number> {
 async function replayMutation(mutation: QueuedMutation): Promise<void> {
   const { table, type, payload, matchColumn, matchValue } = mutation;
 
+  // Use raw REST call to bypass strict typing for dynamic table names
+  const client = supabase as any;
   let result: { error: any };
 
   switch (type) {
     case "insert":
-      result = await (supabase.from(table) as any).insert(payload);
+      result = await client.from(table).insert(payload);
       break;
     case "upsert":
-      result = await (supabase.from(table) as any).upsert(payload);
+      result = await client.from(table).upsert(payload);
       break;
     case "update":
-      result = await (supabase.from(table) as any)
-        .update(payload)
-        .eq(matchColumn!, matchValue);
+      result = await client.from(table).update(payload).eq(matchColumn!, matchValue);
       break;
     case "delete":
-      result = await (supabase.from(table) as any)
-        .delete()
-        .eq(matchColumn!, matchValue);
+      result = await client.from(table).delete().eq(matchColumn!, matchValue);
       break;
     default:
       throw new Error(`Unknown mutation type: ${type}`);
