@@ -420,10 +420,27 @@ export default function DLCModule({ userId }: DLCModuleProps) {
           )}
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Annuler</Button>
-            <Button variant="destructive" onClick={async () => { await deleteProduct(confirmDelete.id); setConfirmDelete(null); }}>Supprimer</Button>
+            <Button variant="destructive" onClick={() => {
+              const product = confirmDelete;
+              setConfirmDelete(null);
+              requireAuth(async () => {
+                await deleteProduct(product.id);
+                await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, identifiedEmployee?.id ?? null);
+              });
+            }}>Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Identify Modal */}
+      <IdentifyModal
+        open={showIdentify}
+        onClose={() => { setShowIdentify(false); setPendingAction(null); }}
+        employees={employees}
+        onIdentified={handleIdentified}
+        title="Identification requise"
+        subtitle="Entrez votre code pour gérer les produits."
+      />
     </div>
   );
 }
