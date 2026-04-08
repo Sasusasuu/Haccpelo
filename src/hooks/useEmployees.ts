@@ -7,6 +7,23 @@ export interface Employee {
   contract_hours: number | null;
   meal_type: string | null;
   nfc_badge_id: string | null;
+  pin_hash: string | null;
+  is_manager: boolean;
+}
+
+function hashPin(pin: string): string {
+  let h = 5381;
+  for (let i = 0; i < pin.length; i++) h = (h * 33) ^ pin.charCodeAt(i);
+  return (h >>> 0).toString(16);
+}
+
+export function verifyEmployeePin(employee: Employee, pin: string): boolean {
+  if (!employee.pin_hash) return false;
+  return hashPin(pin) === employee.pin_hash;
+}
+
+export function hashEmployeePin(pin: string): string {
+  return hashPin(pin);
 }
 
 export function useEmployees(userId: string | undefined) {
@@ -20,7 +37,7 @@ export function useEmployees(userId: string | undefined) {
     try {
       const { data, error: dbError } = await supabase
         .from("employees")
-.select("id, name, contract_hours, meal_type, nfc_badge_id")
+        .select("id, name, contract_hours, meal_type, nfc_badge_id, pin_hash, is_manager")
         .eq("user_id", userId)
         .order("created_at", { ascending: true });
       if (dbError) throw dbError;
@@ -40,7 +57,7 @@ export function useEmployees(userId: string | undefined) {
       const { data, error: dbError } = await supabase
         .from("employees")
         .insert({ user_id: userId, name, contract_hours: contractHours ?? null })
-.select("id, name, contract_hours, meal_type, nfc_badge_id")
+        .select("id, name, contract_hours, meal_type, nfc_badge_id, pin_hash, is_manager")
         .single();
       if (dbError) throw dbError;
       if (data) setEmployees(prev => [...prev, data]);
@@ -49,7 +66,7 @@ export function useEmployees(userId: string | undefined) {
     }
   };
 
-  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type" | "nfc_badge_id">>) => {
+  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type" | "nfc_badge_id" | "pin_hash" | "is_manager">>) => {
     if (!userId) return;
     try {
       const { error: dbError } = await supabase

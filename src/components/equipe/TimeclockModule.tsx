@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
-import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployees, verifyEmployeePin } from "@/hooks/useEmployees";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
-import { useSettings } from "@/hooks/useSettings";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,22 +20,10 @@ interface TimeclockModuleProps {
 }
 
 // Web NFC type declarations
-interface NDEFMessage {
-  records: NDEFRecord[];
-}
-interface NDEFRecord {
-  recordType: string;
-  data?: ArrayBuffer;
-}
-interface NDEFReadingEvent extends Event {
-  serialNumber: string;
-  message: NDEFMessage;
-}
-interface NDEFReader {
-  scan(): Promise<void>;
-  addEventListener(type: "reading", listener: (event: NDEFReadingEvent) => void): void;
-  addEventListener(type: "readingerror", listener: (event: Event) => void): void;
-}
+interface NDEFMessage { records: NDEFRecord[]; }
+interface NDEFRecord { recordType: string; data?: ArrayBuffer; }
+interface NDEFReadingEvent extends Event { serialNumber: string; message: NDEFMessage; }
+interface NDEFReader { scan(): Promise<void>; addEventListener(type: "reading", listener: (event: NDEFReadingEvent) => void): void; addEventListener(type: "readingerror", listener: (event: Event) => void): void; }
 declare const NDEFReader: { new (): NDEFReader } | undefined;
 
 function isNfcSupported(): boolean {
@@ -45,7 +33,7 @@ function isNfcSupported(): boolean {
 export default function TimeclockModule({ userId }: TimeclockModuleProps) {
   const { employees, loading: empLoading, error: empError, retry: empRetry, updateEmployee } = useEmployees(userId);
   const { entries, loading: entriesLoading, error: entriesError, clockIn, clockOut, retry: entriesRetry } = useTimeEntries(userId);
-  const { verifyPin } = useSettings(userId);
+  const { log: auditLog } = useAuditLog(userId);
 
   const [pinModal, setPinModal] = useState<{ emp: { id: string; name: string }; action: string } | null>(null);
   const [pinInput, setPinInput] = useState("");
@@ -87,10 +75,19 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
 
   async function validatePin() {
     if (!pinModal) return;
-    if (verifyPin(pinInput)) {
+    const emp = employees.find(e => e.id === pinModal.emp.id);
+    if (!emp) return;
+
+    // Verify the employee's own PIN
+    if (emp.pin_hash && verifyEmployeePin(emp, pinInput)) {
       const { isIn, openEntry } = getEmployeeStatus(pinModal.emp.id);
-      if (isIn && openEntry) await clockOut(openEntry.id);
-      else await clockIn(pinModal.emp.id);
+      if (isIn && openEntry) {
+        await clockOut(openEntry.id);
+        await auditLog("clock_out", `Fin de shift — ${emp.name}`, emp.id);
+      } else {
+        await clockIn(pinModal.emp.id);
+        await auditLog("clock_in", `Début de shift — ${emp.name}`, emp.id);
+      }
       setPinModal(null); setPinInput("");
     } else {
       setPinError(true); setPinInput(""); setTimeout(() => setPinError(false), 1500);
@@ -122,26 +119,24 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
         const badgeId = event.serialNumber || "unknown";
         setNfcScanning(false);
 
-        // Find employee with this badge
         const emp = employees.find(e => e.nfc_badge_id === badgeId);
-
         if (!emp) {
-          // Badge not assigned – propose to assign it
           setNfcAssignModal({ badgeId });
           setNfcAssignEmpId("");
           return;
         }
 
-        // Toggle clock in/out
         const { isIn, openEntry } = getEmployeeStatus(emp.id);
         const now = new Date();
         const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
         if (isIn && openEntry) {
           await clockOut(openEntry.id);
+          await auditLog("clock_out", `Fin de shift (badge NFC) — ${emp.name}`, emp.id);
           setNfcResult({ empName: emp.name, time: timeStr, action: "Fin de shift" });
         } else {
           await clockIn(emp.id);
+          await auditLog("clock_in", `Début de shift (badge NFC) — ${emp.name}`, emp.id);
           setNfcResult({ empName: emp.name, time: timeStr, action: "Début de shift" });
         }
       });
@@ -154,7 +149,7 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
       setNfcScanning(false);
       toast.error("Erreur NFC", { description: "Impossible d'activer le lecteur NFC." });
     }
-  }, [employees, entries, clockIn, clockOut]);
+  }, [employees, entries, clockIn, clockOut, auditLog]);
 
   async function assignBadge() {
     if (!nfcAssignModal || !nfcAssignEmpId) return;
@@ -179,43 +174,30 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
             {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleNfcScan}
-          disabled={nfcScanning}
-          className="gap-2"
-        >
+        <Button variant="outline" onClick={handleNfcScan} disabled={nfcScanning} className="gap-2">
           <Nfc className="h-4 w-4" />
           {nfcScanning ? "Scan en cours…" : "Scanner mon badge"}
         </Button>
       </div>
 
-      {/* NFC scan result */}
       {nfcResult && (
         <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
           <CardContent className="p-4 flex items-center gap-3">
             <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
             <div>
               <p className="font-semibold text-green-800 dark:text-green-300">{nfcResult.empName}</p>
-              <p className="text-sm text-green-700 dark:text-green-400">
-                {nfcResult.action} — {nfcResult.time}
-              </p>
+              <p className="text-sm text-green-700 dark:text-green-400">{nfcResult.action} — {nfcResult.time}</p>
             </div>
-            <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => setNfcResult(null)}>
-              Fermer
-            </Button>
+            <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => setNfcResult(null)}>Fermer</Button>
           </CardContent>
         </Card>
       )}
 
-      {/* NFC not supported warning (shown once if user hasn't tried) */}
       {!isNfcSupported() && nfcScanning && (
         <Card className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
           <CardContent className="p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            <p className="text-sm text-yellow-800 dark:text-yellow-300">
-              NFC non disponible sur cet appareil. Utilisez Chrome sur Android.
-            </p>
+            <p className="text-sm text-yellow-800 dark:text-yellow-300">NFC non disponible sur cet appareil. Utilisez Chrome sur Android.</p>
           </CardContent>
         </Card>
       )}
@@ -225,6 +207,7 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
           const { isIn, todayEntries, openEntry } = getEmployeeStatus(emp.id);
           const total = getDayTotal(emp.id);
           const completedSessions = todayEntries.filter(e => e.arrival_ts && e.departure_ts);
+          const hasPin = !!emp.pin_hash;
           return (
             <Card key={emp.id}>
               <CardContent className="p-4">
@@ -248,7 +231,7 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
                     <Button
                       variant={isIn ? "destructive" : "default"}
                       size="sm"
-                      onClick={() => openPinModal(emp)}
+                      onClick={() => hasPin ? openPinModal(emp) : toast.error(`Aucun PIN défini pour ${emp.name}. Configurez-le dans les paramètres.`)}
                       className={!isIn ? "bg-green-600 hover:bg-green-700" : ""}
                     >
                       {isIn ? <><Square className="h-3.5 w-3.5 mr-1" />Fin</> : <><Play className="h-3.5 w-3.5 mr-1" />Début</>}
@@ -294,18 +277,18 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
         </Card>
       </div>
 
-      {/* PIN Modal */}
+      {/* PIN Modal — employee's own PIN */}
       <Dialog open={!!pinModal} onOpenChange={() => setPinModal(null)}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>Validation manager</DialogTitle>
+            <DialogTitle>Votre code PIN</DialogTitle>
             {pinModal && <p className="text-sm text-muted-foreground">{pinModal.emp.name} — <strong>{pinModal.action}</strong></p>}
           </DialogHeader>
           <Input
             ref={pinRef} type="password" maxLength={4} value={pinInput}
             onChange={e => setPinInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && validatePin()}
-            placeholder="Code à 4 chiffres"
+            placeholder="Votre code à 4 chiffres"
             className={`text-center text-xl tracking-[10px] ${pinError ? "border-destructive bg-destructive/10" : ""}`}
           />
           {pinError && <p className="text-xs text-destructive text-center">Code incorrect</p>}
@@ -321,14 +304,10 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Badge non reconnu</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Ce badge n'est associé à aucun employé. Voulez-vous l'attribuer ?
-            </p>
+            <p className="text-sm text-muted-foreground">Ce badge n'est associé à aucun employé. Voulez-vous l'attribuer ?</p>
           </DialogHeader>
           <Select value={nfcAssignEmpId} onValueChange={setNfcAssignEmpId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Choisir un employé" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Choisir un employé" /></SelectTrigger>
             <SelectContent>
               {employees.filter(e => !e.nfc_badge_id).map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
