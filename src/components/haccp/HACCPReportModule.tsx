@@ -139,7 +139,7 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
         ["Relevés de températures", `${monthTempLogs.length} relevés — ${tempAlerts.length} alerte(s)`, tempAlerts.length === 0 ? "✅ Conforme" : "⚠️ Non-conformités"],
         ["Plan de nettoyage", `${monthCleaningLogs.length} validations / ~${expectedCleaningTotal} attendues`, monthCleaningLogs.length >= expectedCleaningTotal * 0.8 ? "✅ Conforme" : "⚠️ Incomplet"],
         ["Gestion des DLC", `${monthProducts.length} produits suivis — ${expiredProducts.length} expiré(s)`, expiredProducts.length === 0 ? "✅ Conforme" : "⚠️ Produits expirés"],
-        ["Score global", `${conformityScore}%`, conformityScore >= 80 ? "✅ Satisfaisant" : conformityScore >= 60 ? "⚠️ À améliorer" : "❌ Insuffisant"],
+        ["Notation Alim'Confiance", `${ALIM_LEVELS[alimConfianceLevel].emoji} ${ALIM_LEVELS[alimConfianceLevel].label}`, alimConfianceLevel === "tres_satisfaisant" || alimConfianceLevel === "satisfaisant" ? "✅ Conforme" : alimConfianceLevel === "a_ameliorer" ? "⚠️ Mesures correctives" : "❌ Urgent"],
       ];
       autoTable(doc, {
         head: [summaryData[0]],
