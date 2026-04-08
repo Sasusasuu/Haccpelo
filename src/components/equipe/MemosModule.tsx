@@ -40,7 +40,7 @@ export default function MemosModule({ userId }: MemosModuleProps) {
     if (!text) return;
     requireAuth(async () => {
       await addMemo(text);
-      await auditLog("memo_added", `Mémo ajouté : "${text.slice(0, 50)}${text.length > 50 ? "…" : ""}"`, identifiedEmployee?.id ?? null);
+      await auditLog("memo_added", `Note ajoutée : "${text.slice(0, 50)}${text.length > 50 ? "…" : ""}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
       setDraft("");
     });
   };
@@ -48,7 +48,7 @@ export default function MemosModule({ userId }: MemosModuleProps) {
   const handleDelete = (id: string, content: string) => {
     requireAuth(async () => {
       await deleteMemo(id);
-      await auditLog("memo_deleted", `Mémo supprimé : "${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`, identifiedEmployee?.id ?? null);
+      await auditLog("memo_deleted", `Note supprimée : "${content.slice(0, 50)}${content.length > 50 ? "…" : ""}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
     });
   };
 

@@ -61,11 +61,11 @@ export default function DLCModule({ userId }: DLCModuleProps) {
     requireAuth(async () => {
       if (editId !== null) {
         await updateProduct(editId, form);
-        await auditLog("product_updated", `Produit modifié "${form.nom}"`, identifiedEmployee?.id ?? null);
+        await auditLog("product_updated", `Produit modifié "${form.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
         setEditId(null);
       } else {
         await addProduct(form);
-        await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, identifiedEmployee?.id ?? null);
+        await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
       }
       setForm(makeDefaultForm());
       setView("liste");

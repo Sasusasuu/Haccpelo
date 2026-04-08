@@ -255,36 +255,6 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     general: { label: "Général", color: "bg-muted text-muted-foreground" },
   };
 
-  const ACTION_LABELS: Record<string, string> = {
-    settings_unlocked: "🔓 Déverrouillage",
-    employee_added: "👤+ Ajout employé",
-    employee_deleted: "👤- Suppression employé",
-    employee_updated: "✏️ Modif. employé",
-    employee_pin_changed: "🔑 PIN modifié",
-    employee_role_changed: "🛡️ Rôle modifié",
-    role_added: "🎯+ Ajout rôle",
-    role_updated: "🎯 Modif. rôle",
-    role_deleted: "🎯- Suppression rôle",
-    export_comptable: "📊 Export comptable",
-    clock_in: "▶️ Pointage arrivée",
-    clock_out: "⏹️ Pointage départ",
-    memo_added: "📝+ Note ajoutée",
-    memo_deleted: "📝- Note supprimée",
-    planning_slot_added: "📅+ Créneau ajouté",
-    planning_slot_deleted: "📅- Créneau supprimé",
-    planning_week_copied: "📅 Sem. copiée",
-    planning_unlocked: "🔓 Planning déverrouillé",
-    manager_pin_changed: "🔐 Code manager modifié",
-    temp_logged: "🌡️ Température relevée",
-    temp_deleted: "🌡️- Température supprimée",
-    cleaning_done: "🧹 Nettoyage validé",
-    product_added: "📦+ Produit ajouté",
-    product_updated: "📦 Produit modifié",
-    product_deleted: "📦- Produit supprimé",
-    label_printed: "🏷️ Étiquette imprimée",
-    session_duration_changed: "⏱️ Durée session modifiée",
-  };
-
   const categories = [...new Set(auditLogs.map(l => l.category))];
   const filteredLogs = auditFilter === "all"
     ? auditLogs

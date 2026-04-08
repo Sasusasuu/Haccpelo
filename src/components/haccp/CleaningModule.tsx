@@ -65,7 +65,7 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
     requireAuth(async () => {
       const empName = identifiedEmployee?.name ?? "Inconnu";
       await logDone(task.id, empName);
-      await auditLog("cleaning_done", `Nettoyage "${task.task_name}" (${task.zone}) validé par ${empName}`, identifiedEmployee?.id ?? null);
+      await auditLog("cleaning_done", `Nettoyage "${task.task_name}" (${task.zone}) validé par ${empName}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
     });
   };
 

@@ -57,7 +57,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
 
   const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
     startSession(emp);
-    auditLog("planning_unlocked", `Planning déverrouillé par ${emp.name}`, emp.id);
+    auditLog("planning_unlocked", `Planning déverrouillé par ${emp.name}`, emp.id, emp.name);
     setShowIdentifyModal(false);
     if (pendingAction) {
       pendingAction();
@@ -94,14 +94,14 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
     });
     await addSlots(entries);
     const daysList = [DAYS[dayIdx], ...slotForm.copyDays.map(d => DAYS[d])].join(", ");
-    await auditLog("planning_slot_added", `Créneau ${targetEmp?.name ?? ""} ${daysList} ${slotForm.start}-${slotForm.end}${slotForm.role ? ` (${slotForm.role})` : ""}`, identifiedEmployee.id);
+    await auditLog("planning_slot_added", `Créneau ${targetEmp?.name ?? ""} ${daysList} ${slotForm.start}-${slotForm.end}${slotForm.role ? ` (${slotForm.role})` : ""}`, identifiedEmployee.id, identifiedEmployee.name);
     setModal(null);
   }
 
   function handleDeleteSlot(slotId: string, empName: string, dayIdx: number, startTime: string, endTime: string) {
     requireAuth(async () => {
       await deleteSlot(slotId);
-      await auditLog("planning_slot_deleted", `Suppression créneau ${empName} ${DAYS[dayIdx]} ${startTime}-${endTime}`, identifiedEmployee?.id ?? null);
+      await auditLog("planning_slot_deleted", `Suppression créneau ${empName} ${DAYS[dayIdx]} ${startTime}-${endTime}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
     });
   }
 
@@ -115,7 +115,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         const prevSlots = await fetchSlotsByWeekKey(prevWeekKey);
         if (prevSlots.length === 0) return;
         await addSlots(prevSlots.map(s => ({ employeeId: s.employee_id, dayIndex: s.day_index, startTime: s.start_time, endTime: s.end_time, role: s.role || undefined })));
-        await auditLog("planning_week_copied", `Copie planning sem. précédente → sem. ${fmtShort(dates[0])}`, identifiedEmployee?.id ?? null);
+        await auditLog("planning_week_copied", `Copie planning sem. précédente → sem. ${fmtShort(dates[0])}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
       } finally { setCopying(false); }
     });
   }
