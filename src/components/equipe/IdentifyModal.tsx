@@ -23,6 +23,8 @@ interface IdentifyModalProps {
   onIdentified: (employee: Employee) => void;
   title?: string;
   subtitle?: string;
+  /** Optional: also accept the manager legacy PIN */
+  verifyManagerPin?: (pin: string) => boolean;
 }
 
 export default function IdentifyModal({ open, onClose, employees, managersOnly = false, onIdentified, title = "Identification requise", subtitle }: IdentifyModalProps) {
