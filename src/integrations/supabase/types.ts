@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string
+          employee_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description: string
+          employee_id?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string
+          employee_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaning_logs: {
         Row: {
           created_at: string
@@ -108,9 +143,11 @@ export type Database = {
           contract_hours: number | null
           created_at: string
           id: string
+          is_manager: boolean
           meal_type: string | null
           name: string
           nfc_badge_id: string | null
+          pin_hash: string | null
           updated_at: string
           user_id: string
         }
@@ -118,9 +155,11 @@ export type Database = {
           contract_hours?: number | null
           created_at?: string
           id?: string
+          is_manager?: boolean
           meal_type?: string | null
           name: string
           nfc_badge_id?: string | null
+          pin_hash?: string | null
           updated_at?: string
           user_id: string
         }
@@ -128,9 +167,11 @@ export type Database = {
           contract_hours?: number | null
           created_at?: string
           id?: string
+          is_manager?: boolean
           meal_type?: string | null
           name?: string
           nfc_badge_id?: string | null
+          pin_hash?: string | null
           updated_at?: string
           user_id?: string
         }
