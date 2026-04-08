@@ -1,15 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePlanningSlots } from "@/hooks/usePlanningSlots";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
+import { useSettings } from "@/hooks/useSettings";
+import { useAuditLog } from "@/hooks/useAuditLog";
+import { useIdentitySession } from "@/hooks/useIdentitySession";
+import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, Copy, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText, Lock, Shield } from "lucide-react";
 import { DAYS, SLOT_COLORS, fmtShort, getRoleColor, getWeekDates, makeWeekKey, calcSlotMinutes } from "@/lib/constants";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { PlanningGridSkeleton } from "@/components/ui/loading-skeletons";
@@ -28,12 +33,37 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
   const { employees, error: empError } = useEmployees(userId);
   const { slots, loading, error: slotError, addSlots, deleteSlot, fetchSlotsByWeekKey, retry } = usePlanningSlots(userId, weekKey);
   const { roles } = useCustomRoles(userId);
+  const { planningSessionMinutes } = useSettings(userId);
+  const { log: auditLog } = useAuditLog(userId);
+
+  const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
+  const [showIdentifyModal, setShowIdentifyModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [modal, setModal] = useState<{ empId: string; empName: string; dayIdx: number } | null>(null);
   const [slotForm, setSlotForm] = useState({ start: "10:00", end: "15:00", copyDays: [] as number[], role: "" });
   const [copying, setCopying] = useState(false);
 
   const error = empError || slotError;
+
+  const requireAuth = useCallback((action: () => void) => {
+    if (isIdentified) {
+      action();
+    } else {
+      setPendingAction(() => action);
+      setShowIdentifyModal(true);
+    }
+  }, [isIdentified]);
+
+  const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
+    startSession(emp);
+    auditLog("planning_unlocked", `Planning déverrouillé par ${emp.name}`, emp.id);
+    setShowIdentifyModal(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  }, [startSession, auditLog, pendingAction]);
 
   const weekHours = useMemo(() => {
     const result: Record<string, string> = {};
@@ -47,27 +77,47 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
     return result;
   }, [slots, employees]);
 
+  function openAddModal(empId: string, empName: string, dayIdx: number) {
+    requireAuth(() => {
+      setModal({ empId, empName, dayIdx });
+      setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" });
+    });
+  }
+
   async function addSlot() {
-    if (!modal) return;
+    if (!modal || !identifiedEmployee) return;
     const { empId, dayIdx } = modal;
+    const targetEmp = employees.find(e => e.id === empId);
     const entries = [{ employeeId: empId, dayIndex: dayIdx, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined }];
     slotForm.copyDays.forEach((di) => {
       entries.push({ employeeId: empId, dayIndex: di, startTime: slotForm.start, endTime: slotForm.end, role: slotForm.role || undefined });
     });
     await addSlots(entries);
+    const daysList = [DAYS[dayIdx], ...slotForm.copyDays.map(d => DAYS[d])].join(", ");
+    await auditLog("planning_slot_added", `Créneau ${targetEmp?.name ?? ""} ${daysList} ${slotForm.start}-${slotForm.end}${slotForm.role ? ` (${slotForm.role})` : ""}`, identifiedEmployee.id);
     setModal(null);
   }
 
+  function handleDeleteSlot(slotId: string, empName: string, dayIdx: number, startTime: string, endTime: string) {
+    requireAuth(async () => {
+      await deleteSlot(slotId);
+      await auditLog("planning_slot_deleted", `Suppression créneau ${empName} ${DAYS[dayIdx]} ${startTime}-${endTime}`, identifiedEmployee?.id ?? null);
+    });
+  }
+
   async function copyPreviousWeek() {
-    if (copying) return;
-    setCopying(true);
-    try {
-      const prevDates = getWeekDates(weekOffset - 1);
-      const prevWeekKey = makeWeekKey(prevDates);
-      const prevSlots = await fetchSlotsByWeekKey(prevWeekKey);
-      if (prevSlots.length === 0) return;
-      await addSlots(prevSlots.map(s => ({ employeeId: s.employee_id, dayIndex: s.day_index, startTime: s.start_time, endTime: s.end_time, role: s.role || undefined })));
-    } finally { setCopying(false); }
+    requireAuth(async () => {
+      if (copying) return;
+      setCopying(true);
+      try {
+        const prevDates = getWeekDates(weekOffset - 1);
+        const prevWeekKey = makeWeekKey(prevDates);
+        const prevSlots = await fetchSlotsByWeekKey(prevWeekKey);
+        if (prevSlots.length === 0) return;
+        await addSlots(prevSlots.map(s => ({ employeeId: s.employee_id, dayIndex: s.day_index, startTime: s.start_time, endTime: s.end_time, role: s.role || undefined })));
+        await auditLog("planning_week_copied", `Copie planning sem. précédente → sem. ${fmtShort(dates[0])}`, identifiedEmployee?.id ?? null);
+      } finally { setCopying(false); }
+    });
   }
 
   function exportPDF() {
@@ -120,6 +170,18 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
 
   return (
     <div className="space-y-4">
+      {/* Auth status */}
+      {isIdentified && identifiedEmployee && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Shield className="h-4 w-4 text-primary" />
+          <span>Modif. autorisées — <strong>{identifiedEmployee.name}</strong></span>
+          <Badge variant="outline" className="text-[10px]">{planningSessionMinutes} min</Badge>
+          <Button variant="ghost" size="sm" className="h-6 text-xs ml-auto" onClick={clearSession}>
+            <Lock className="h-3 w-3 mr-1" /> Verrouiller
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setWeekOffset(w => w - 1)}>
           <ChevronLeft className="h-4 w-4" />
@@ -169,14 +231,14 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
                             <div key={s.id} className="rounded-md px-1.5 py-0.5 mb-0.5 text-[11px]" style={{ background: slotColor + "22", border: `1.5px solid ${slotColor}` }}>
                               <div className="flex items-center justify-between gap-1">
                                 <span className="font-medium">{s.start_time}–{s.end_time}</span>
-                                <button onClick={() => deleteSlot(s.id)} className="text-muted-foreground hover:text-destructive text-[10px]">✕</button>
+                                <button onClick={() => handleDeleteSlot(s.id, emp.name, dayIdx, s.start_time, s.end_time)} className="text-muted-foreground hover:text-destructive text-[10px]">✕</button>
                               </div>
                               {s.role && <span className="text-[10px] font-semibold" style={{ color: slotColor }}>{s.role}</span>}
                             </div>
                           );
                         })}
                         <button
-                          onClick={() => { setModal({ empId: emp.id, empName: emp.name, dayIdx }); setSlotForm({ start: "10:00", end: "15:00", copyDays: [], role: "" }); }}
+                          onClick={() => openAddModal(emp.id, emp.name, dayIdx)}
                           className="text-[11px] text-muted-foreground hover:text-foreground w-full text-center py-0.5"
                         >+ ajouter</button>
                       </td>
@@ -199,6 +261,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         </div>
       </Card>
 
+      {/* Add slot modal */}
       <Dialog open={!!modal} onOpenChange={() => setModal(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -265,6 +328,17 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Identify Modal */}
+      <IdentifyModal
+        open={showIdentifyModal}
+        onClose={() => { setShowIdentifyModal(false); setPendingAction(null); }}
+        employees={employees}
+        managersOnly={true}
+        onIdentified={handleIdentified}
+        title="Modification du planning"
+        subtitle="Seuls les managers peuvent modifier le planning."
+      />
     </div>
   );
 }
