@@ -157,13 +157,13 @@ export default function Dashboard({ userId }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Pense-bêtes */}
+      {/* Notes partagées */}
       {memos.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <StickyNote className="h-5 w-5 text-muted-foreground" />
-              Pense-bêtes
+              Notes partagées
               <Badge variant="secondary" className="ml-auto">{memos.length}</Badge>
             </CardTitle>
           </CardHeader>

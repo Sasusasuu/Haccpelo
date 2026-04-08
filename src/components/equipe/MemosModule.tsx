@@ -55,7 +55,7 @@ export default function MemosModule({ userId }: MemosModuleProps) {
   return (
     <div className="space-y-4 max-w-2xl">
       <h2 className="text-lg font-semibold flex items-center gap-2">
-        <StickyNote className="h-5 w-5" /> Pense-bête
+        <StickyNote className="h-5 w-5" /> Notes partagées
       </h2>
 
       {isIdentified && identifiedEmployee && (
@@ -95,7 +95,7 @@ export default function MemosModule({ userId }: MemosModuleProps) {
       {loading ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
       ) : memos.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun pense-bête pour le moment.</p>
+        <p className="text-sm text-muted-foreground">Aucune note partagée pour le moment.</p>
       ) : (
         <div className="space-y-2">
           {memos.map(memo => (
@@ -127,7 +127,7 @@ export default function MemosModule({ userId }: MemosModuleProps) {
         employees={employees}
         onIdentified={handleIdentified}
         title="Identification requise"
-        subtitle="Entrez votre code pour modifier les pense-bêtes."
+        subtitle="Entrez votre code pour modifier les notes partagées."
       />
     </div>
   );
