@@ -46,8 +46,15 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
     setValidating(true);
     try {
       const candidates = managersOnly ? employees.filter(e => e.is_manager) : employees;
-      
-      // Check employee PINs (async bcrypt)
+      const hasPins = candidates.some(e => e.pin_hash) || verifyManagerPin;
+
+      if (!hasPins) {
+        toast.error("Aucun PIN configuré. Demandez à un manager de définir les codes PIN dans les paramètres.");
+        setValidating(false);
+        return;
+      }
+
+      // Check employee PINs
       for (const emp of candidates) {
         if (emp.pin_hash) {
           const match = await verifyEmployeePin(emp, pin);
