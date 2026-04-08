@@ -33,7 +33,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
   const { employees, error: empError } = useEmployees(userId);
   const { slots, loading, error: slotError, addSlots, deleteSlot, fetchSlotsByWeekKey, retry } = usePlanningSlots(userId, weekKey);
   const { roles } = useCustomRoles(userId);
-  const { planningSessionMinutes } = useSettings(userId);
+  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
 
   const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
@@ -336,6 +336,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         employees={employees}
         managersOnly={true}
         onIdentified={handleIdentified}
+        verifyManagerPin={verifyPin}
         title="Modification du planning"
         subtitle="Seuls les managers peuvent modifier le planning."
       />

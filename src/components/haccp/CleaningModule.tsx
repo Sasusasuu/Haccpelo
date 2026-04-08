@@ -26,7 +26,7 @@ interface CleaningModuleProps {
 
 export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone, loading, error, onRetry }: CleaningModuleProps) {
   const { employees } = useEmployees(userId);
-  const { planningSessionMinutes } = useSettings(userId);
+  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
   const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
@@ -145,6 +145,7 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
         onClose={() => { setShowIdentify(false); setPendingAction(null); }}
         employees={employees}
         onIdentified={handleIdentified}
+        verifyManagerPin={verifyPin}
         title="Identification requise"
         subtitle="Entrez votre code pour valider le nettoyage."
       />
