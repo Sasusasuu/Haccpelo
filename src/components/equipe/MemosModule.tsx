@@ -17,7 +17,7 @@ interface MemosModuleProps {
 export default function MemosModule({ userId }: MemosModuleProps) {
   const { memos, loading, addMemo, deleteMemo } = useMemos(userId);
   const { employees } = useEmployees(userId);
-  const { planningSessionMinutes } = useSettings(userId);
+  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
   const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
