@@ -20,6 +20,7 @@ import {
   Clock,
   StickyNote,
 } from "lucide-react";
+import AnalyticsCharts from "./AnalyticsCharts";
 
 interface DashboardProps {
   userId: string;
@@ -213,6 +214,14 @@ export default function Dashboard({ userId }: DashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      <AnalyticsCharts
+        tempLogs={tempLogs}
+        cleaningTasks={cleaningTasks}
+        cleaningLogs={cleaningLogs}
+        equipments={equipments}
+        produits={produits}
+      />
     </div>
   );
 }
