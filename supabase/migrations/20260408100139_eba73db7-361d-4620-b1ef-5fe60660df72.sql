@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN nfc_badge_id text UNIQUE DEFAULT NULL;

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useSettings } from "@/hooks/useSettings";
@@ -8,17 +8,42 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Clock, Play, Square } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Clock, Play, Square, Nfc, CheckCircle2, AlertTriangle } from "lucide-react";
 import { SLOT_COLORS, fmtTime, diffH, fmtDuration } from "@/lib/constants";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { ListSkeleton } from "@/components/ui/loading-skeletons";
+import { toast } from "sonner";
 
 interface TimeclockModuleProps {
   userId: string;
 }
 
+// Web NFC type declarations
+interface NDEFMessage {
+  records: NDEFRecord[];
+}
+interface NDEFRecord {
+  recordType: string;
+  data?: ArrayBuffer;
+}
+interface NDEFReadingEvent extends Event {
+  serialNumber: string;
+  message: NDEFMessage;
+}
+interface NDEFReader {
+  scan(): Promise<void>;
+  addEventListener(type: "reading", listener: (event: NDEFReadingEvent) => void): void;
+  addEventListener(type: "readingerror", listener: (event: Event) => void): void;
+}
+declare const NDEFReader: { new (): NDEFReader } | undefined;
+
+function isNfcSupported(): boolean {
+  return typeof window !== "undefined" && "NDEFReader" in window;
+}
+
 export default function TimeclockModule({ userId }: TimeclockModuleProps) {
-  const { employees, loading: empLoading, error: empError, retry: empRetry } = useEmployees(userId);
+  const { employees, loading: empLoading, error: empError, retry: empRetry, updateEmployee } = useEmployees(userId);
   const { entries, loading: entriesLoading, error: entriesError, clockIn, clockOut, retry: entriesRetry } = useTimeEntries(userId);
   const { verifyPin } = useSettings(userId);
 
@@ -26,6 +51,12 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
   const pinRef = useRef<HTMLInputElement>(null);
+
+  // NFC scan state
+  const [nfcScanning, setNfcScanning] = useState(false);
+  const [nfcResult, setNfcResult] = useState<{ empName: string; time: string; action: string } | null>(null);
+  const [nfcAssignModal, setNfcAssignModal] = useState<{ badgeId: string } | null>(null);
+  const [nfcAssignEmpId, setNfcAssignEmpId] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
   const loading = empLoading || entriesLoading;
@@ -71,19 +102,123 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
       .sort((a, b) => b.work_date.localeCompare(a.work_date)).slice(0, 10);
   }
 
+  const handleNfcScan = useCallback(async () => {
+    if (!isNfcSupported()) {
+      toast.error("NFC non disponible", {
+        description: "Votre appareil ou navigateur ne supporte pas le NFC. Utilisez Chrome sur Android.",
+      });
+      return;
+    }
+
+    setNfcScanning(true);
+    setNfcResult(null);
+
+    try {
+      const reader = new NDEFReader!();
+      await reader.scan();
+      toast.info("Approchez le badge NFC de l'appareil…");
+
+      reader.addEventListener("reading", async (event: NDEFReadingEvent) => {
+        const badgeId = event.serialNumber || "unknown";
+        setNfcScanning(false);
+
+        // Find employee with this badge
+        const emp = employees.find(e => e.nfc_badge_id === badgeId);
+
+        if (!emp) {
+          // Badge not assigned – propose to assign it
+          setNfcAssignModal({ badgeId });
+          setNfcAssignEmpId("");
+          return;
+        }
+
+        // Toggle clock in/out
+        const { isIn, openEntry } = getEmployeeStatus(emp.id);
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+        if (isIn && openEntry) {
+          await clockOut(openEntry.id);
+          setNfcResult({ empName: emp.name, time: timeStr, action: "Fin de shift" });
+        } else {
+          await clockIn(emp.id);
+          setNfcResult({ empName: emp.name, time: timeStr, action: "Début de shift" });
+        }
+      });
+
+      reader.addEventListener("readingerror", () => {
+        setNfcScanning(false);
+        toast.error("Erreur de lecture NFC", { description: "Impossible de lire le badge. Réessayez." });
+      });
+    } catch {
+      setNfcScanning(false);
+      toast.error("Erreur NFC", { description: "Impossible d'activer le lecteur NFC." });
+    }
+  }, [employees, entries, clockIn, clockOut]);
+
+  async function assignBadge() {
+    if (!nfcAssignModal || !nfcAssignEmpId) return;
+    await updateEmployee(nfcAssignEmpId, { nfc_badge_id: nfcAssignModal.badgeId });
+    const emp = employees.find(e => e.id === nfcAssignEmpId);
+    toast.success(`Badge associé à ${emp?.name ?? "l'employé"}`);
+    setNfcAssignModal(null);
+    setNfcAssignEmpId("");
+  }
+
   if (error) return <ErrorAlert message={error} onRetry={empRetry || entriesRetry} />;
   if (loading) return <ListSkeleton rows={4} />;
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Clock className="h-5 w-5" /> Pointeuse
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Clock className="h-5 w-5" /> Pointeuse
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={handleNfcScan}
+          disabled={nfcScanning}
+          className="gap-2"
+        >
+          <Nfc className="h-4 w-4" />
+          {nfcScanning ? "Scan en cours…" : "Scanner mon badge"}
+        </Button>
       </div>
+
+      {/* NFC scan result */}
+      {nfcResult && (
+        <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
+            <div>
+              <p className="font-semibold text-green-800 dark:text-green-300">{nfcResult.empName}</p>
+              <p className="text-sm text-green-700 dark:text-green-400">
+                {nfcResult.action} — {nfcResult.time}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => setNfcResult(null)}>
+              Fermer
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* NFC not supported warning (shown once if user hasn't tried) */}
+      {!isNfcSupported() && nfcScanning && (
+        <Card className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <p className="text-sm text-yellow-800 dark:text-yellow-300">
+              NFC non disponible sur cet appareil. Utilisez Chrome sur Android.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-3">
         {employees.map((emp, ei) => {
@@ -159,6 +294,7 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
         </Card>
       </div>
 
+      {/* PIN Modal */}
       <Dialog open={!!pinModal} onOpenChange={() => setPinModal(null)}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
@@ -176,6 +312,32 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPinModal(null)}>Annuler</Button>
             <Button onClick={validatePin}>Valider</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* NFC Badge Assignment Modal */}
+      <Dialog open={!!nfcAssignModal} onOpenChange={() => setNfcAssignModal(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Badge non reconnu</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Ce badge n'est associé à aucun employé. Voulez-vous l'attribuer ?
+            </p>
+          </DialogHeader>
+          <Select value={nfcAssignEmpId} onValueChange={setNfcAssignEmpId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choisir un employé" />
+            </SelectTrigger>
+            <SelectContent>
+              {employees.filter(e => !e.nfc_badge_id).map(emp => (
+                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNfcAssignModal(null)}>Annuler</Button>
+            <Button onClick={assignBadge} disabled={!nfcAssignEmpId}>Associer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
