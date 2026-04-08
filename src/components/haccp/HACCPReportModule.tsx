@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Thermometer, SprayCan, ClipboardCheck, AlertTriangle, CheckCircle2, Shield, Info } from "lucide-react";
+import { FileText, Download, Thermometer, SprayCan, ClipboardCheck, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
 import { fmtDate, isTempAlert, TEMP_THRESHOLD_FRIDGE, TEMP_THRESHOLD_FREEZER, FREQUENCIES } from "@/lib/constants";
 import { CardSkeleton } from "@/components/ui/loading-skeletons";
 import jsPDF from "jspdf";
