@@ -196,6 +196,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
         onClose={() => { setShowIdentify(false); setPendingAction(null); }}
         employees={employees}
         onIdentified={handleIdentified}
+        verifyManagerPin={verifyPin}
         title="Identification requise"
         subtitle="Entrez votre code pour enregistrer un relevé."
       />
