@@ -52,19 +52,23 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   });
   const [exporting, setExporting] = useState(false);
 
-  function tryUnlock() {
-    // Try employee PINs (managers only)
-    const manager = employees.find(emp => emp.is_manager && emp.pin_hash && verifyEmployeePin(emp, settingsPin));
-    if (manager) {
-      setSettingsUnlocked(true);
-      setCurrentManagerId(manager.id);
-      setSettingsPin("");
-      setPinError(false);
-      auditLog("settings_unlocked", `Paramètres déverrouillés par ${manager.name}`, manager.id, manager.name);
-      return;
+  async function tryUnlock() {
+    // Try employee PINs (managers only) — async bcrypt
+    const managerCandidates = employees.filter(emp => emp.is_manager && emp.pin_hash);
+    for (const emp of managerCandidates) {
+      const match = await verifyEmployeePin(emp, settingsPin);
+      if (match) {
+        setSettingsUnlocked(true);
+        setCurrentManagerId(emp.id);
+        setSettingsPin("");
+        setPinError(false);
+        auditLog("settings_unlocked", `Paramètres déverrouillés par ${emp.name}`, emp.id, emp.name);
+        return;
+      }
     }
-    // Fallback: legacy manager PIN
-    if (verifyPin(settingsPin)) {
+    // Fallback: legacy manager PIN (async)
+    const isManagerPin = await verifyPin(settingsPin);
+    if (isManagerPin) {
       setSettingsUnlocked(true);
       setCurrentManagerId(null);
       setSettingsPin("");
