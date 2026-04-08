@@ -20,6 +20,7 @@ import {
   Clock,
   StickyNote,
 } from "lucide-react";
+import AnalyticsCharts from "./AnalyticsCharts";
 
 interface DashboardProps {
   userId: string;
