@@ -18,6 +18,7 @@ import {
   Users,
   AlertTriangle,
   Clock,
+  StickyNote,
 } from "lucide-react";
 
 interface DashboardProps {
@@ -31,9 +32,10 @@ export default function Dashboard({ userId }: DashboardProps) {
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading } = useCleaningPlan(userId);
   const { equipments, loading: equipLoading } = useEquipments(userId);
   const { entries, loading: entriesLoading } = useTimeEntries(userId);
+  const { memos, loading: memosLoading } = useMemos(userId);
 
   const today = todayStr();
-  const loading = prodLoading || empLoading || tempLoading || cleanLoading || equipLoading || entriesLoading;
+  const loading = prodLoading || empLoading || tempLoading || cleanLoading || equipLoading || entriesLoading || memosLoading;
 
   const dlcStats = useMemo(() => {
     let expired = 0, urgent = 0, ok = 0;
@@ -154,6 +156,32 @@ export default function Dashboard({ userId }: DashboardProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pense-bêtes */}
+      {memos.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-muted-foreground" />
+              Pense-bêtes
+              <Badge variant="secondary" className="ml-auto">{memos.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {memos.slice(0, 5).map(m => (
+                <li key={m.id} className="text-sm flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  <span className="line-clamp-2">{m.content}</span>
+                </li>
+              ))}
+              {memos.length > 5 && (
+                <li className="text-xs text-muted-foreground">+ {memos.length - 5} autre{memos.length - 5 > 1 ? "s" : ""}</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {(dlcStats.expired > 0 || dlcStats.urgent > 0 || tempStats.alerts > 0) && (
         <Card className="border-destructive/50">
