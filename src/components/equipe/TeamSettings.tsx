@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useEmployees, hashEmployeePin, verifyEmployeePin } from "@/hooks/useEmployees";
 import { useSettings } from "@/hooks/useSettings";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
-import { useAuditLog, type AuditCategory } from "@/hooks/useAuditLog";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
-import { Lock, Plus, Pencil, Trash2, X, Check, Users, LogOut, Eye, EyeOff, Download, ScrollText, Shield, Share2 } from "lucide-react";
+import { Lock, Plus, Pencil, Trash2, X, Check, Users, LogOut, Eye, EyeOff, Download, ScrollText, Shield } from "lucide-react";
 import { DAYS, calcSlotMinutes } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -245,6 +245,16 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     }
   }
 
+  const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
+    badgeuse: { label: "Badgeuse", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+    dlc: { label: "DLC", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
+    haccp: { label: "HACCP", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+    planning: { label: "Planning", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+    parametres: { label: "Paramètres", color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
+    memos: { label: "Notes", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
+    general: { label: "Général", color: "bg-muted text-muted-foreground" },
+  };
+
   const ACTION_LABELS: Record<string, string> = {
     settings_unlocked: "🔓 Déverrouillage",
     employee_added: "👤+ Ajout employé",
@@ -258,8 +268,8 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     export_comptable: "📊 Export comptable",
     clock_in: "▶️ Pointage arrivée",
     clock_out: "⏹️ Pointage départ",
-    memo_added: "📝+ Mémo ajouté",
-    memo_deleted: "📝- Mémo supprimé",
+    memo_added: "📝+ Note ajoutée",
+    memo_deleted: "📝- Note supprimée",
     planning_slot_added: "📅+ Créneau ajouté",
     planning_slot_deleted: "📅- Créneau supprimé",
     planning_week_copied: "📅 Sem. copiée",
@@ -271,11 +281,14 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     product_added: "📦+ Produit ajouté",
     product_updated: "📦 Produit modifié",
     product_deleted: "📦- Produit supprimé",
+    label_printed: "🏷️ Étiquette imprimée",
     session_duration_changed: "⏱️ Durée session modifiée",
   };
 
-  const actionTypes = [...new Set(auditLogs.map(l => l.action_type))];
-  const filteredLogs = auditFilter === "all" ? auditLogs : auditLogs.filter(l => l.action_type === auditFilter);
+  const categories = [...new Set(auditLogs.map(l => l.category))];
+  const filteredLogs = auditFilter === "all"
+    ? auditLogs
+    : auditLogs.filter(l => l.category === auditFilter);
 
   if (!settingsUnlocked) {
     const managers = employees.filter(e => e.is_manager && e.pin_hash);
@@ -503,23 +516,29 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2"><ScrollText className="h-4 w-4" /> Journal d'activité</CardTitle>
-            <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAuditLog(v => !v)}>
-              {showAuditLog ? <><EyeOff className="h-3 w-3 mr-1" />Masquer</> : <><Eye className="h-3 w-3 mr-1" />Afficher</>}
-            </Button>
+            <CardTitle className="text-sm flex items-center gap-2"><ScrollText className="h-4 w-4" /> Historique des activités</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="text-xs" onClick={exportCSV}>
+                <Download className="h-3 w-3 mr-1" />Exporter CSV
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAuditLog(v => !v)}>
+                {showAuditLog ? <><EyeOff className="h-3 w-3 mr-1" />Masquer</> : <><Eye className="h-3 w-3 mr-1" />Afficher</>}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <Collapsible open={showAuditLog} onOpenChange={setShowAuditLog}>
           <CollapsibleContent>
             <CardContent className="space-y-3">
-              {actionTypes.length > 1 && (
+              {categories.length > 1 && (
                 <Select value={auditFilter} onValueChange={setAuditFilter}>
                   <SelectTrigger className="w-[220px] h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Toutes les actions</SelectItem>
-                    {actionTypes.map(t => (
-                      <SelectItem key={t} value={t}>{ACTION_LABELS[t] ?? t}</SelectItem>
-                    ))}
+                    <SelectItem value="all">Toutes les catégories</SelectItem>
+                    {categories.map(c => {
+                      const cat = CATEGORY_LABELS[c];
+                      return <SelectItem key={c} value={c}>{cat?.label ?? c}</SelectItem>;
+                    })}
                   </SelectContent>
                 </Select>
               )}
@@ -528,17 +547,22 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
               ) : filteredLogs.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucune activité enregistrée.</p>
               ) : (
-                <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                <div className="space-y-1 max-h-[500px] overflow-y-auto">
                   {filteredLogs.map(entry => {
-                    const emp = entry.employee_id ? employees.find(e => e.id === entry.employee_id) : null;
+                    const catInfo = CATEGORY_LABELS[entry.category] ?? CATEGORY_LABELS.general;
                     return (
                       <div key={entry.id} className="flex items-start gap-2 p-2 rounded text-xs bg-muted/30 hover:bg-muted/50">
                         <span className="text-muted-foreground whitespace-nowrap shrink-0">
                           {new Date(entry.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}{" "}
                           {new Date(entry.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
+                        <Badge variant="secondary" className={`text-[10px] shrink-0 ${catInfo.color}`}>
+                          {catInfo.label}
+                        </Badge>
                         <span className="flex-1">{entry.description}</span>
-                        {emp && <Badge variant="secondary" className="text-[10px] shrink-0">{emp.name}</Badge>}
+                        {entry.employee_name && (
+                          <Badge variant="outline" className="text-[10px] shrink-0">{entry.employee_name}</Badge>
+                        )}
                       </div>
                     );
                   })}
@@ -547,7 +571,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
               {hasMore && !auditLoading && (
                 <Button variant="ghost" size="sm" className="w-full text-xs" onClick={loadMore}>Charger plus…</Button>
               )}
-              <p className="text-xs text-muted-foreground italic">📌 Les logs ne peuvent pas être supprimés (traçabilité).</p>
+              <p className="text-xs text-muted-foreground italic">📌 Les logs sont conservés 90 jours (nettoyage automatique).</p>
             </CardContent>
           </CollapsibleContent>
         </Collapsible>
