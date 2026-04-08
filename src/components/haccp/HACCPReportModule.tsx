@@ -437,6 +437,83 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
         </Card>
       </div>
 
+      {/* Score breakdown */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-5 w-5 text-muted-foreground" />
+            Comment est calculé le score de conformité ?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Le score part de <span className="font-semibold text-foreground">100 %</span> puis des pénalités sont appliquées selon 3 critères :
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border p-3 space-y-1">
+              <div className="flex items-center gap-2">
+                <Thermometer className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium">Températures</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">40 %</span></p>
+              <p className="text-xs text-muted-foreground">Pénalité = (alertes / relevés) × 40</p>
+              <p className="text-xs mt-1">
+                Ce mois : {monthTempLogs.length > 0
+                  ? <span className={tempAlerts.length === 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>
+                      {tempAlerts.length} alerte{tempAlerts.length > 1 ? "s" : ""} / {monthTempLogs.length} relevé{monthTempLogs.length > 1 ? "s" : ""}
+                      {" → −"}{monthTempLogs.length > 0 ? Math.round((tempAlerts.length / monthTempLogs.length) * 40) : 0} pts
+                    </span>
+                  : <span className="text-muted-foreground">aucun relevé</span>
+                }
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 space-y-1">
+              <div className="flex items-center gap-2">
+                <SprayCan className="h-4 w-4 text-green-500" />
+                <span className="text-sm font-medium">Nettoyage</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">30 %</span></p>
+              <p className="text-xs text-muted-foreground">Pénalité = (1 − validations/attendues) × 30</p>
+              <p className="text-xs mt-1">
+                {expectedCleaningTotal > 0
+                  ? <span className={monthCleaningLogs.length >= expectedCleaningTotal ? "text-green-600 font-medium" : "text-yellow-600 font-medium"}>
+                      {monthCleaningLogs.length} / {expectedCleaningTotal} attendues
+                      {" → −"}{Math.round((1 - Math.min(monthCleaningLogs.length / expectedCleaningTotal, 1)) * 30)} pts
+                    </span>
+                  : <span className="text-muted-foreground">aucune tâche configurée</span>
+                }
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 space-y-1">
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium">DLC</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Poids : <span className="font-semibold text-foreground">30 %</span></p>
+              <p className="text-xs text-muted-foreground">Pénalité = (expirés / total produits) × 30</p>
+              <p className="text-xs mt-1">
+                {monthProducts.length > 0
+                  ? <span className={expiredProducts.length === 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>
+                      {expiredProducts.length} expiré{expiredProducts.length > 1 ? "s" : ""} / {monthProducts.length} produit{monthProducts.length > 1 ? "s" : ""}
+                      {" → −"}{Math.round((expiredProducts.length / monthProducts.length) * 30)} pts
+                    </span>
+                  : <span className="text-muted-foreground">aucun produit suivi</span>
+                }
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <span className="text-sm font-medium">Résultat :</span>
+            <span className={`text-lg font-bold ${conformityScore >= 80 ? "text-green-600" : conformityScore >= 60 ? "text-yellow-600" : "text-destructive"}`}>
+              100 − {100 - conformityScore} = {conformityScore} %
+            </span>
+            <Badge variant={conformityScore >= 80 ? "outline" : "destructive"} className={conformityScore >= 80 ? "border-green-500 text-green-600" : ""}>
+              {conformityScore >= 80 ? "Satisfaisant" : conformityScore >= 60 ? "À améliorer" : "Insuffisant"}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Info card */}
       <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
         <CardContent className="p-4">
