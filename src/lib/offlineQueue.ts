@@ -32,6 +32,35 @@ export async function getPendingCount(): Promise<number> {
   return allKeys.filter((k) => String(k).startsWith(QUEUE_PREFIX)).length;
 }
 
+async function replayMutation(mutation: QueuedMutation): Promise<void> {
+  const { table, type, payload, matchColumn, matchValue } = mutation;
+
+  let result: { error: any };
+
+  switch (type) {
+    case "insert":
+      result = await (supabase.from(table) as any).insert(payload);
+      break;
+    case "upsert":
+      result = await (supabase.from(table) as any).upsert(payload);
+      break;
+    case "update":
+      result = await (supabase.from(table) as any)
+        .update(payload)
+        .eq(matchColumn!, matchValue);
+      break;
+    case "delete":
+      result = await (supabase.from(table) as any)
+        .delete()
+        .eq(matchColumn!, matchValue);
+      break;
+    default:
+      throw new Error(`Unknown mutation type: ${type}`);
+  }
+
+  if (result.error) throw result.error;
+}
+
 export async function flushQueue(): Promise<{ success: number; failed: number }> {
   const allKeys = await keys();
   const mutationKeys = allKeys
@@ -46,31 +75,7 @@ export async function flushQueue(): Promise<{ success: number; failed: number }>
     if (!mutation) continue;
 
     try {
-      let query: any;
-      switch (mutation.type) {
-        case "insert":
-          query = supabase.from(mutation.table).insert(mutation.payload as any);
-          break;
-        case "upsert":
-          query = supabase.from(mutation.table).upsert(mutation.payload as any);
-          break;
-        case "update":
-          query = supabase
-            .from(mutation.table)
-            .update(mutation.payload as any)
-            .eq(mutation.matchColumn!, mutation.matchValue as any);
-          break;
-        case "delete":
-          query = supabase
-            .from(mutation.table)
-            .delete()
-            .eq(mutation.matchColumn!, mutation.matchValue as any);
-          break;
-      }
-
-      const { error } = await query;
-      if (error) throw error;
-
+      await replayMutation(mutation);
       await del(key);
       success++;
     } catch (err) {
