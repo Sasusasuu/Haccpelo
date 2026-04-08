@@ -24,7 +24,7 @@ interface EquipeParametresProps {
 
 export default function EquipeParametres({ userId, onSignOut }: EquipeParametresProps) {
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
-  const { verifyPin, changePin } = useSettings(userId);
+  const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
   const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog } = useAuditLog(userId);
 
@@ -262,7 +262,16 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     memo_deleted: "📝- Mémo supprimé",
     planning_slot_added: "📅+ Créneau ajouté",
     planning_slot_deleted: "📅- Créneau supprimé",
+    planning_week_copied: "📅 Sem. copiée",
+    planning_unlocked: "🔓 Planning déverrouillé",
     manager_pin_changed: "🔐 Code manager modifié",
+    temp_logged: "🌡️ Température relevée",
+    temp_deleted: "🌡️- Température supprimée",
+    cleaning_done: "🧹 Nettoyage validé",
+    product_added: "📦+ Produit ajouté",
+    product_updated: "📦 Produit modifié",
+    product_deleted: "📦- Produit supprimé",
+    session_duration_changed: "⏱️ Durée session modifiée",
   };
 
   const actionTypes = [...new Set(auditLogs.map(l => l.action_type))];
