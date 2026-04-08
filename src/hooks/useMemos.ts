@@ -19,7 +19,7 @@ export function useMemos(userId: string) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) {
-      toast.error("Erreur chargement pense-bêtes");
+      toast.error("Erreur chargement notes partagées");
     } else {
       setMemos(data ?? []);
     }
@@ -35,10 +35,10 @@ export function useMemos(userId: string) {
       .select()
       .single();
     if (error) {
-      toast.error("Erreur ajout pense-bête");
+      toast.error("Erreur ajout note partagée");
     } else if (data) {
       setMemos(prev => [data, ...prev]);
-      toast.success("Pense-bête ajouté");
+      toast.success("Note partagée ajoutée");
     }
   }, [userId]);
 
