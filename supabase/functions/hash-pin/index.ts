@@ -1,10 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const ITERATIONS = 100000;
+const SALT_LENGTH = 16;
+
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: ITERATIONS, hash: "SHA-256" },
+    keyMaterial,
+    256
+  );
+  const hashBytes = new Uint8Array(derived);
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, "0")).join("");
+  const hashHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  return `${saltHex}:${hashHex}`;
+}
+
+async function verifyPin(pin: string, stored: string): Promise<boolean> {
+  const parts = stored.split(":");
+  if (parts.length !== 2) return false;
+  const saltHex = parts[0];
+  const expectedHashHex = parts[1];
+  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: ITERATIONS, hash: "SHA-256" },
+    keyMaterial,
+    256
+  );
+  const hashHex = Array.from(new Uint8Array(derived)).map(b => b.toString(16).padStart(2, "0")).join("");
+  return hashHex === expectedHashHex;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -20,7 +54,7 @@ serve(async (req) => {
     }
 
     if (action === "hash") {
-      const hashed = await bcrypt.hash(pin);
+      const hashed = await hashPin(pin);
       return new Response(JSON.stringify({ hash: hashed }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -33,7 +67,13 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const valid = await bcrypt.compare(pin, hash);
+      // Support legacy short hashes (old DJB2) — always return false so user must re-set PIN
+      if (!hash.includes(":")) {
+        return new Response(JSON.stringify({ valid: false }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const valid = await verifyPin(pin, hash);
       return new Response(JSON.stringify({ valid }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
