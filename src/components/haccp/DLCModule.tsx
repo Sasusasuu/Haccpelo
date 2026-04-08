@@ -441,6 +441,7 @@ export default function DLCModule({ userId }: DLCModuleProps) {
         onClose={() => { setShowIdentify(false); setPendingAction(null); }}
         employees={employees}
         onIdentified={handleIdentified}
+        verifyManagerPin={verifyPin}
         title="Identification requise"
         subtitle="Entrez votre code pour gérer les produits."
       />
