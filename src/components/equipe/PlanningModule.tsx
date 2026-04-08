@@ -336,6 +336,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         employees={employees}
         managersOnly={true}
         onIdentified={handleIdentified}
+        verifyManagerPin={verifyPin}
         title="Modification du planning"
         subtitle="Seuls les managers peuvent modifier le planning."
       />
