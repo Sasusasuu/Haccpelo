@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useEmployees, hashEmployeePin, verifyEmployeePin } from "@/hooks/useEmployees";
 import { useSettings } from "@/hooks/useSettings";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
-import { useAuditLog } from "@/hooks/useAuditLog";
+import { useAuditLog, type AuditCategory } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
-import { Lock, Plus, Pencil, Trash2, X, Check, Users, LogOut, Eye, EyeOff, Download, ScrollText, Shield } from "lucide-react";
+import { Lock, Plus, Pencil, Trash2, X, Check, Users, LogOut, Eye, EyeOff, Download, ScrollText, Shield, Share2 } from "lucide-react";
 import { DAYS, calcSlotMinutes } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -26,7 +26,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
   const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
-  const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog } = useAuditLog(userId);
+  const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog, exportCSV } = useAuditLog(userId);
 
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
@@ -60,7 +60,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       setCurrentManagerId(manager.id);
       setSettingsPin("");
       setPinError(false);
-      auditLog("settings_unlocked", `Paramètres déverrouillés par ${manager.name}`, manager.id);
+      auditLog("settings_unlocked", `Paramètres déverrouillés par ${manager.name}`, manager.id, manager.name);
       return;
     }
     // Fallback: legacy manager PIN
@@ -90,49 +90,49 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   async function handleAddEmployee() {
     if (!newEmp.trim()) return;
     await addEmployee(newEmp.trim());
-    await auditLog("employee_added", `Ajout employé "${newEmp.trim()}"`, currentManagerId);
+    await auditLog("employee_added", `Ajout employé "${newEmp.trim()}"`, currentManagerId, currentManagerName);
     setNewEmp("");
   }
 
   async function handleDeleteEmployee(emp: { id: string; name: string }) {
     await deleteEmployee(emp.id);
-    await auditLog("employee_deleted", `Suppression employé "${emp.name}"`, currentManagerId);
+    await auditLog("employee_deleted", `Suppression employé "${emp.name}"`, currentManagerId, currentManagerName);
   }
 
   async function handleUpdateEmployee(empId: string, empName: string, updates: Record<string, unknown>, fieldLabel: string) {
     await updateEmployee(empId, updates as Parameters<typeof updateEmployee>[1]);
-    await auditLog("employee_updated", `Modification ${fieldLabel} de "${empName}"`, currentManagerId);
+    await auditLog("employee_updated", `Modification ${fieldLabel} de "${empName}"`, currentManagerId, currentManagerName);
   }
 
   async function handleSetPin(empId: string, empName: string) {
     if (empPinValue.length !== 4) return;
     await updateEmployee(empId, { pin_hash: hashEmployeePin(empPinValue) });
-    await auditLog("employee_pin_changed", `PIN modifié pour "${empName}"`, currentManagerId);
+    await auditLog("employee_pin_changed", `PIN modifié pour "${empName}"`, currentManagerId, currentManagerName);
     setEmpPinEdit(null);
     setEmpPinValue("");
   }
 
   async function handleToggleManager(emp: { id: string; name: string; is_manager: boolean }) {
     await updateEmployee(emp.id, { is_manager: !emp.is_manager });
-    await auditLog("employee_role_changed", `${emp.name} ${!emp.is_manager ? "promu manager" : "retiré du rôle manager"}`, currentManagerId);
+    await auditLog("employee_role_changed", `${emp.name} ${!emp.is_manager ? "promu manager" : "retiré du rôle manager"}`, currentManagerId, currentManagerName);
   }
 
   async function handleAddRole() {
     if (!newRoleLabel.trim()) return;
     await addRole(newRoleLabel.trim(), newRoleColor);
-    await auditLog("role_added", `Ajout rôle "${newRoleLabel.trim()}"`, currentManagerId);
+    await auditLog("role_added", `Ajout rôle "${newRoleLabel.trim()}"`, currentManagerId, currentManagerName);
     setNewRoleLabel("");
   }
 
   async function handleUpdateRole(roleId: string) {
     await updateRole(roleId, { label: editRoleLabel, color: editRoleColor });
-    await auditLog("role_updated", `Modification rôle "${editRoleLabel}"`, currentManagerId);
+    await auditLog("role_updated", `Modification rôle "${editRoleLabel}"`, currentManagerId, currentManagerName);
     setEditRoleId(null);
   }
 
   async function handleDeleteRole(r: { id: string; label: string }) {
     await deleteRole(r.id);
-    await auditLog("role_deleted", `Suppression rôle "${r.label}"`, currentManagerId);
+    await auditLog("role_deleted", `Suppression rôle "${r.label}"`, currentManagerId, currentManagerName);
   }
 
   async function exportComptable() {
@@ -239,7 +239,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       });
 
       doc.save(`export_comptable_${monthNames[month - 1]}_${year}.pdf`);
-      await auditLog("export_comptable", `Export comptable ${monthNames[month - 1]} ${year}`, currentManagerId);
+      await auditLog("export_comptable", `Export comptable ${monthNames[month - 1]} ${year}`, currentManagerId, currentManagerName);
     } finally {
       setExporting(false);
     }
@@ -313,7 +313,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
             <Button variant="outline" onClick={async () => {
               if (newPin.length === 4) {
                 await changePin(newPin);
-                await auditLog("manager_pin_changed", "Code manager legacy modifié", currentManagerId);
+                await auditLog("manager_pin_changed", "Code manager legacy modifié", currentManagerId, currentManagerName);
                 setNewPin("");
               }
             }}>Enregistrer</Button>
@@ -469,7 +469,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
               const v = parseInt(e.target.value);
               if (v >= 1 && v <= 60) {
                 await updateSessionMinutes(v);
-                await auditLog("session_duration_changed", `Durée session modifiée : ${v} min`, currentManagerId);
+                await auditLog("session_duration_changed", `Durée session modifiée : ${v} min`, currentManagerId, currentManagerName);
               }
             }} className="w-20 h-9 text-center" />
             <span className="text-sm text-muted-foreground">minutes</span>
