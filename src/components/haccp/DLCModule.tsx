@@ -158,7 +158,10 @@ export default function DLCModule({ userId }: DLCModuleProps) {
       <div className="space-y-4">
         <div className="flex gap-2 no-print">
           <Button variant="outline" onClick={() => setView("liste")}>← Retour</Button>
-          <Button onClick={() => window.print()}>
+          <Button onClick={() => {
+            auditLog("label_printed", `Étiquette imprimée "${etiquette.nom}" DLC ${fmtDate(etiquette.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
+            window.print();
+          }}>
             <Printer className="h-4 w-4 mr-2" />Imprimer
           </Button>
         </div>
