@@ -46,12 +46,16 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
     if (match) {
       onIdentified(match);
       setPin("");
+    } else if (verifyManagerPin && verifyManagerPin(pin)) {
+      // Fallback: accept manager legacy PIN — create a virtual "Manager" identity
+      onIdentified({ id: "", name: "Manager", contract_hours: null, meal_type: null, nfc_badge_id: null, pin_hash: null, is_manager: true });
+      setPin("");
     } else {
       setError(true);
       setPin("");
       setTimeout(() => setError(false), 1500);
     }
-  }, [pin, employees, managersOnly, onIdentified]);
+  }, [pin, employees, managersOnly, onIdentified, verifyManagerPin]);
 
   const handleNfc = useCallback(async () => {
     if (!isNfcSupported()) {
