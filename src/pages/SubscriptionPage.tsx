@@ -74,22 +74,6 @@ const plans: Plan[] = [
       { label: "Cupidatat non proident", included: true },
     ],
   },
-  {
-    key: "enterprise",
-    title: "Sur Mesure",
-    price: "À venir...",
-    priceLabel: "",
-    description: "Multisites, intégration ERP, support dédié...",
-    recommended: false,
-    disabled: true,
-    features: [
-      { label: "Lorem ipsum dolor sit amet", included: true },
-      { label: "Consectetur adipiscing elit", included: true },
-      { label: "Sed do eiusmod tempor", included: true },
-      { label: "Ut enim ad minim veniam", included: true },
-      { label: "Quis nostrud exercitation", included: true },
-    ],
-  },
 ];
 
 interface SubscriptionPageProps {
@@ -151,7 +135,7 @@ export default function SubscriptionPage({ subscriptionStatus, userId }: Subscri
         </AlertDescription>
       </Alert>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {plans.map((plan) => {
           const btn = getButtonConfig(plan.key, status);
           const isCurrent = plan.key === status;
