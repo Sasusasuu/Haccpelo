@@ -1,6 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { CleaningTask } from "@/hooks/useCleaningPlan";
+import { Equipment } from "@/hooks/useEquipments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +27,13 @@ export default function HACCPParametres({ userId, equipmentsList, addEquipment, 
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState(false);
   const [newEquipName, setNewEquipName] = useState("");
-  const [newEquipType, setNewEquipType] = useState("frigo");
+  const [newEquipType, setNewEquipType] = useState<"frigo" | "congelateur">("frigo");
   const [editEquipId, setEditEquipId] = useState<string | null>(null);
   const [editEquipName, setEditEquipName] = useState("");
-  const [editEquipType, setEditEquipType] = useState("frigo");
+  const [editEquipType, setEditEquipType] = useState<"frigo" | "congelateur">("frigo");
   const [newTaskZone, setNewTaskZone] = useState("");
   const [newTaskName, setNewTaskName] = useState("");
-  const [newTaskFreq, setNewTaskFreq] = useState("quotidien");
+  const [newTaskFreq, setNewTaskFreq] = useState<"quotidien" | "hebdomadaire" | "mensuel">("quotidien");
 
   async function tryUnlock() {
     const ok = await verifyPin(pin);
