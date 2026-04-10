@@ -47,7 +47,10 @@ export default function SetupPinPrompt({ userId, onComplete, onSignOut }: SetupP
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="w-full max-w-md flex justify-end mb-2">
+        <LogoutButton onSignOut={onSignOut} />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">

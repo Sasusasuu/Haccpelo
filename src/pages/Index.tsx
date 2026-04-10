@@ -65,6 +65,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     return (
       <OnboardingForm
         userId={userId}
+        onSignOut={onSignOut}
         onComplete={async (data: Partial<EstablishmentProfile>) => {
           await updateProfile(data);
         }}
@@ -77,6 +78,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     return (
       <LegalOnboarding
         userId={userId}
+        onSignOut={onSignOut}
         onComplete={async () => {
           await refetchProfile();
         }}
@@ -88,6 +90,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     return (
       <SetupPinPrompt
         userId={userId}
+        onSignOut={onSignOut}
         onComplete={async () => {
           await refetchProfile();
         }}

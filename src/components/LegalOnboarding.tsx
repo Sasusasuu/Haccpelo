@@ -114,6 +114,9 @@ export default function LegalOnboarding({ userId, onComplete, onSignOut }: Legal
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-3xl flex justify-end mb-2">
+        <LogoutButton onSignOut={onSignOut} />
+      </div>
       <div className="w-full max-w-3xl flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-center">Documents légaux</h1>
         <p className="text-muted-foreground text-center text-sm">
