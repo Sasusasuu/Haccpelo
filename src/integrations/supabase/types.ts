@@ -412,12 +412,43 @@ export type Database = {
           },
         ]
       }
+      traceability_photos: {
+        Row: {
+          categorie: string
+          created_at: string
+          id: string
+          photo_url: string
+          product_id: string | null
+          product_name: string
+          user_id: string
+        }
+        Insert: {
+          categorie?: string
+          created_at?: string
+          id?: string
+          photo_url: string
+          product_id?: string | null
+          product_name: string
+          user_id: string
+        }
+        Update: {
+          categorie?: string
+          created_at?: string
+          id?: string
+          photo_url?: string
+          product_id?: string | null
+          product_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       cleanup_old_audit_logs: { Args: never; Returns: undefined }
+      cleanup_old_traceability_photos: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
