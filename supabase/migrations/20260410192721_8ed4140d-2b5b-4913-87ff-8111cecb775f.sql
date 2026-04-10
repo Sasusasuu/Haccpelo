@@ -1,0 +1,1 @@
+ALTER TABLE public.settings ADD COLUMN manager_pin_configured BOOLEAN NOT NULL DEFAULT false;

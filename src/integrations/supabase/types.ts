@@ -357,6 +357,7 @@ export type Database = {
           id: string
           legal_documents_version: string | null
           manager_name: string | null
+          manager_pin_configured: boolean
           manager_pin_hash: string | null
           onboarding_completed: boolean
           phone: string | null
@@ -380,6 +381,7 @@ export type Database = {
           id?: string
           legal_documents_version?: string | null
           manager_name?: string | null
+          manager_pin_configured?: boolean
           manager_pin_hash?: string | null
           onboarding_completed?: boolean
           phone?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           id?: string
           legal_documents_version?: string | null
           manager_name?: string | null
+          manager_pin_configured?: boolean
           manager_pin_hash?: string | null
           onboarding_completed?: boolean
           phone?: string | null
