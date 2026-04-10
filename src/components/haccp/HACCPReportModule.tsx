@@ -3,11 +3,15 @@ import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useProducts } from "@/hooks/useProducts";
 import { useEquipments } from "@/hooks/useEquipments";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useSettings } from "@/hooks/useSettings";
+import { useIdentitySession } from "@/hooks/useIdentitySession";
+import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Thermometer, SprayCan, ClipboardCheck, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
+import { FileText, Download, Thermometer, SprayCan, ClipboardCheck, AlertTriangle, CheckCircle2, Shield, Lock } from "lucide-react";
 import TraceabilityPhotoHistory from "./TraceabilityPhotoHistory";
 import { fmtDate, isTempAlert, TEMP_THRESHOLD_FRIDGE, TEMP_THRESHOLD_FREEZER, FREQUENCIES } from "@/lib/constants";
 import { CardSkeleton } from "@/components/ui/loading-skeletons";
@@ -35,6 +39,11 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [generating, setGenerating] = useState(false);
+  const [showIdentify, setShowIdentify] = useState(false);
+
+  const { employees } = useEmployees(userId);
+  const { verifyPin, planningSessionMinutes } = useSettings(userId);
+  const { identifiedEmployee, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
   const { logs: tempLogs, loading: tempLoading } = useTemperatureLogs(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading } = useCleaningPlan(userId);
@@ -354,6 +363,38 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
   }
 
   if (loading) return <CardSkeleton count={3} />;
+
+  if (!identifiedEmployee) {
+    return (
+      <>
+        <Card className="max-w-md mx-auto mt-8">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lock className="h-4 w-4" /> Identification requise
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              L'accès aux rapports HACCP nécessite une identification manager.
+            </p>
+            <Button onClick={() => setShowIdentify(true)}>
+              <Lock className="h-4 w-4 mr-2" />S'identifier
+            </Button>
+          </CardContent>
+        </Card>
+        <IdentifyModal
+          open={showIdentify}
+          onClose={() => setShowIdentify(false)}
+          employees={employees}
+          managersOnly
+          onIdentified={(emp) => { startSession(emp); setShowIdentify(false); }}
+          title="Identification manager"
+          subtitle="Seuls les managers peuvent accéder aux rapports HACCP."
+          verifyManagerPin={verifyPin}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">
