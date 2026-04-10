@@ -1,10 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const CORS_ALLOW_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
+
+function getAllowedOrigins(): string[] {
+  const origins: string[] = [
+    "https://id-preview--13900d90-7c22-443b-a791-caa074dd8c0a.lovable.app",
+  ];
+  const env = Deno.env.get("ALLOWED_ORIGIN");
+  if (env) origins.push(...env.split(",").map(o => o.trim()).filter(Boolean));
+  const siteUrl = Deno.env.get("SITE_URL");
+  if (siteUrl) origins.push(siteUrl.replace(/\/$/, ""));
+  return [...new Set(origins)];
+}
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const allowed = getAllowedOrigins();
+  if (allowed.includes(origin)) {
+    return { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS, "Vary": "Origin" };
+  }
+  return { "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS };
+}
+
+function forbiddenResponse() {
+  return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+    status: 403, headers: { "Content-Type": "application/json" },
+  });
+}
 
 const ITERATIONS = 100000;
 const SALT_LENGTH = 16;
