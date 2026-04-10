@@ -13,9 +13,11 @@
     "moduleResolution": "bundler",
     "noEmit": true,
     "noFallthroughCasesInSwitch": false,
-    "noImplicitAny": false,
-    "noUnusedLocals": false,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
     "noUnusedParameters": false,
+    "strict": true,
+    "strictNullChecks": true,
     "paths": {
       "@/*": [
         "./src/*"

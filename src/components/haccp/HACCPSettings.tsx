@@ -1,5 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useSettings } from "@/hooks/useSettings";
+import { CleaningTask } from "@/hooks/useCleaningPlan";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,14 +34,15 @@ export default function HACCPParametres({ userId, equipmentsList, addEquipment, 
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskFreq, setNewTaskFreq] = useState("quotidien");
 
-  function tryUnlock() {
-    if (verifyPin(pin)) { setUnlocked(true); setPin(""); setPinError(false); }
+  async function tryUnlock() {
+    const ok = await verifyPin(pin);
+    if (ok) { setUnlocked(true); setPin(""); setPinError(false); }
     else { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 1500); }
   }
 
   const cleaningZones = useMemo(() => {
-    const z: Record<string, any[]> = {};
-    cleaningTasks.forEach((t: any) => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
+    const z: Record<string, CleaningTask[]> = {};
+    cleaningTasks.forEach((t) => { if (!z[t.zone]) z[t.zone] = []; z[t.zone].push(t); });
     return z;
   }, [cleaningTasks]);
 
