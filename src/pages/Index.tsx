@@ -93,7 +93,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
           <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
           <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
           <Route path="/equipe/parametres" element={<TeamSettings userId={userId} onSignOut={onSignOut} />} />
-          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/subscription" element={<SubscriptionPage subscriptionStatus={profile.subscription_status} userId={userId} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
