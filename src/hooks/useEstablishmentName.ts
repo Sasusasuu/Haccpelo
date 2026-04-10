@@ -46,7 +46,7 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, has_manager_pin, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
         .eq("user_id", userId)
         .maybeSingle();
       if (data) {
@@ -60,7 +60,7 @@ export function useEstablishmentName(userId: string | undefined) {
           city: (data as any).city || "",
           manager_name: (data as any).manager_name || "",
           onboarding_completed: (data as any).onboarding_completed ?? false,
-          has_manager_pin: !!(data as any).manager_pin_hash,
+          has_manager_pin: !!(data as any).has_manager_pin,
           cgu_accepted_at: (data as any).cgu_accepted_at ?? null,
           cgv_accepted_at: (data as any).cgv_accepted_at ?? null,
           privacy_policy_accepted_at: (data as any).privacy_policy_accepted_at ?? null,
