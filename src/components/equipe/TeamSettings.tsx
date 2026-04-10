@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useEmployees, hashEmployeePin, verifyEmployeePin } from "@/hooks/useEmployees";
+import { useEmployees, hashEmployeePin } from "@/hooks/useEmployees";
+import { identifyByPinRemote } from "@/lib/pinUtils";
 import { useSettings } from "@/hooks/useSettings";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
 import { useAuditLog } from "@/hooks/useAuditLog";
@@ -56,11 +57,11 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   const [exporting, setExporting] = useState(false);
 
   async function tryUnlock() {
-    // Try employee PINs (managers only) — async bcrypt
-    const managerCandidates = employees.filter(emp => emp.is_manager && emp.pin_hash);
-    for (const emp of managerCandidates) {
-      const match = await verifyEmployeePin(emp, settingsPin);
-      if (match) {
+    // Server-side PIN identification (managers only)
+    const matchedId = await identifyByPinRemote(userId, settingsPin, true);
+    if (matchedId) {
+      const emp = employees.find(e => e.id === matchedId);
+      if (emp) {
         setSettingsUnlocked(true);
         setCurrentManagerId(emp.id);
         setSettingsPin("");
@@ -274,7 +275,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
     : auditLogs.filter(l => l.category === auditFilter);
 
   if (!settingsUnlocked) {
-    const managers = employees.filter(e => e.is_manager && e.pin_hash);
+    const managers = employees.filter(e => e.is_manager && e.has_pin);
     return (
       <Card className="max-w-md">
         <CardHeader>
@@ -389,7 +390,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
                   <SelectItem value="repas_entreprise">Repas en entreprise</SelectItem>
                 </SelectContent>
               </Select>
-              <Input value={emp.nfc_badge_id || ""} onChange={e => handleUpdateEmployee(emp.id, emp.name, { nfc_badge_id: e.target.value || null }, "badge NFC")} placeholder="ID badge NFC" className="w-[120px] h-8 text-xs font-mono" />
+              <Input value="" onChange={e => handleUpdateEmployee(emp.id, emp.name, { nfc_badge_id: e.target.value || null }, "badge NFC")} placeholder={emp.has_nfc ? "Badge configuré ✓" : "ID badge NFC"} className="w-[120px] h-8 text-xs font-mono" />
 
               {/* PIN */}
               {empPinEdit === emp.id ? (
@@ -400,7 +401,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
                 </div>
               ) : (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEmpPinEdit(emp.id); setEmpPinValue(""); }}>
-                  {emp.pin_hash ? "🔑 Changer PIN" : "🔑 Définir PIN"}
+                  {emp.has_pin ? "🔑 Changer PIN" : "🔑 Définir PIN"}
                 </Button>
               )}
 
