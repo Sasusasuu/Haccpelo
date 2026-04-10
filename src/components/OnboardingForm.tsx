@@ -7,7 +7,6 @@ import { Building2, Lock } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { hashPinRemote } from "@/lib/pinUtils";
 import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
-import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 
 interface OnboardingFormProps {
   userId: string;
