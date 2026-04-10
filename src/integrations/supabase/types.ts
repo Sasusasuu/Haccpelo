@@ -275,6 +275,33 @@ export type Database = {
           },
         ]
       }
+      product_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          default_dlc_days: number
+          id: string
+          product_name: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          default_dlc_days?: number
+          id?: string
+          product_name: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_dlc_days?: number
+          id?: string
+          product_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           categorie: string
