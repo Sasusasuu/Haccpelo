@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
 
+
 export interface Product {
   id: string;
   nom: string;
@@ -79,7 +80,19 @@ export function useProducts(userId: string | undefined) {
         .select("id, nom, categorie, fab, dlc, quantite, photo_url")
         .single();
       if (dbError) throw dbError;
-      if (data) setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "", photo_url: data.photo_url || "" }]);
+      if (data) {
+        setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "", photo_url: data.photo_url || "" }]);
+        // Log photo to traceability history
+        if (data.photo_url) {
+          await supabase.from("traceability_photos").insert({
+            user_id: userId,
+            product_name: data.nom,
+            categorie: data.categorie,
+            photo_url: data.photo_url,
+            product_id: data.id,
+          });
+        }
+      }
     } catch {
       setError("Impossible d'ajouter le produit.");
     }
@@ -94,6 +107,17 @@ export function useProducts(userId: string | undefined) {
         .eq("id", id)
         .eq("user_id", userId);
       if (dbError) throw dbError;
+      // Log new photo to traceability history if photo changed
+      const oldProduct = produits.find(p => p.id === id);
+      if (product.photo_url && product.photo_url !== oldProduct?.photo_url) {
+        await supabase.from("traceability_photos").insert({
+          user_id: userId,
+          product_name: product.nom,
+          categorie: product.categorie,
+          photo_url: product.photo_url,
+          product_id: id,
+        });
+      }
       setProduits(prev => prev.map(p => p.id === id ? { id, ...product } : p));
     } catch {
       setError("Impossible de modifier le produit.");

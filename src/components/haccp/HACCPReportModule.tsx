@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Thermometer, SprayCan, ClipboardCheck, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
+import TraceabilityPhotoHistory from "./TraceabilityPhotoHistory";
 import { fmtDate, isTempAlert, TEMP_THRESHOLD_FRIDGE, TEMP_THRESHOLD_FREEZER, FREQUENCIES } from "@/lib/constants";
 import { CardSkeleton } from "@/components/ui/loading-skeletons";
 import jsPDF from "jspdf";
@@ -585,6 +586,9 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Photo traceability history */}
+      <TraceabilityPhotoHistory userId={userId} />
     </div>
   );
 }
