@@ -112,7 +112,7 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-xs">
+      <DialogContent className="max-w-sm w-[90vw]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}

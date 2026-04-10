@@ -1,14 +1,11 @@
-import { useState, useMemo, useCallback } from "react";
-import { useEmployees } from "@/hooks/useEmployees";
-import { useSettings } from "@/hooks/useSettings";
-import { useAuditLog } from "@/hooks/useAuditLog";
-import { useIdentitySession } from "@/hooks/useIdentitySession";
-import IdentifyModal from "@/components/equipe/IdentifyModal";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SprayCan, CheckCircle2, Shield } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { SprayCan, CheckCircle2 } from "lucide-react";
 import { todayStr, fmtDate, FREQUENCIES } from "@/lib/constants";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { ListSkeleton } from "@/components/ui/loading-skeletons";
@@ -25,25 +22,11 @@ interface CleaningModuleProps {
 }
 
 export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone, loading, error, onRetry }: CleaningModuleProps) {
-  const { employees } = useEmployees(userId);
-  const { planningSessionMinutes, verifyPin } = useSettings(userId);
-  const { log: auditLog } = useAuditLog(userId);
-  const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
-
   const [filterFreq, setFilterFreq] = useState("tous");
-  const [showIdentify, setShowIdentify] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [pendingTask, setPendingTask] = useState<{ id: string; task_name: string; zone: string } | null>(null);
+  const [doneByName, setDoneByName] = useState("");
   const today = todayStr();
-
-  const requireAuth = useCallback((action: () => void) => {
-    if (isIdentified) { action(); } else { setPendingAction(() => action); setShowIdentify(true); }
-  }, [isIdentified]);
-
-  const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
-    startSession(emp);
-    setShowIdentify(false);
-    if (pendingAction) { pendingAction(); setPendingAction(null); }
-  }, [startSession, pendingAction]);
 
   const isTaskDoneToday = (taskId: string) => logs.some(l => l.task_id === taskId && l.done_date === today);
   const lastDone = (taskId: string) => logs.find(l => l.task_id === taskId);
@@ -62,11 +45,17 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
   const doneToday = tasks.filter(t => isTaskDoneToday(t.id)).length;
 
   const handleValidate = (task: { id: string; task_name: string; zone: string }) => {
-    requireAuth(async () => {
-      const empName = identifiedEmployee?.name ?? "Inconnu";
-      await logDone(task.id, empName);
-      await auditLog("cleaning_done", `Nettoyage "${task.task_name}" (${task.zone}) validé par ${empName}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-    });
+    setPendingTask(task);
+    setDoneByName("");
+    setShowNameModal(true);
+  };
+
+  const confirmValidation = async () => {
+    if (!pendingTask || !doneByName.trim()) return;
+    await logDone(pendingTask.id, doneByName.trim());
+    setShowNameModal(false);
+    setPendingTask(null);
+    setDoneByName("");
   };
 
   if (error) return <ErrorAlert message={error} onRetry={onRetry} />;
@@ -74,14 +63,6 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
 
   return (
     <div className="space-y-4">
-      {isIdentified && identifiedEmployee && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Shield className="h-3.5 w-3.5 text-primary" />
-          Identifié : <strong>{identifiedEmployee.name}</strong>
-          <Button variant="ghost" size="sm" className="h-5 text-[10px] ml-auto" onClick={clearSession}>Verrouiller</Button>
-        </div>
-      )}
-
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -140,15 +121,25 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
         ))
       )}
 
-      <IdentifyModal
-        open={showIdentify}
-        onClose={() => { setShowIdentify(false); setPendingAction(null); }}
-        employees={employees}
-        onIdentified={handleIdentified}
-        verifyManagerPin={verifyPin}
-        title="Identification requise"
-        subtitle="Entrez votre code pour valider le nettoyage."
-      />
+      <Dialog open={showNameModal} onOpenChange={() => { setShowNameModal(false); setPendingTask(null); }}>
+        <DialogContent className="max-w-sm w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>Qui valide ?</DialogTitle>
+            {pendingTask && <p className="text-sm text-muted-foreground">{pendingTask.task_name} — {pendingTask.zone}</p>}
+          </DialogHeader>
+          <Input
+            value={doneByName}
+            onChange={e => setDoneByName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && confirmValidation()}
+            placeholder="Votre prénom"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowNameModal(false); setPendingTask(null); }}>Annuler</Button>
+            <Button onClick={confirmValidation} disabled={!doneByName.trim()}>Valider</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

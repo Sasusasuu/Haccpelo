@@ -60,17 +60,6 @@ export default function HACCPParametres({ userId, equipmentsList, addEquipment, 
 
   return (
     <div className="space-y-4 max-w-xl">
-      {/* PIN */}
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm">Code manager HACCP</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input type="password" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value)} placeholder="Nouveau code (4 chiffres)" />
-            <Button variant="outline" onClick={async () => { if (newPin.length === 4) { await changePin(newPin); setNewPin(""); } }}>Enregistrer</Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Équipements */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-sm">🌡️ Équipements (frigos / congélateurs)</CardTitle></CardHeader>

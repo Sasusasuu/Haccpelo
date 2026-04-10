@@ -56,20 +56,18 @@ export default function DLCModule({ userId }: DLCModuleProps) {
     if (pendingAction) { pendingAction(); setPendingAction(null); }
   }, [startSession, pendingAction]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
-    requireAuth(async () => {
-      if (editId !== null) {
-        await updateProduct(editId, form);
-        await auditLog("product_updated", `Produit modifié "${form.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-        setEditId(null);
-      } else {
-        await addProduct(form);
-        await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-      }
-      setForm(makeDefaultForm());
-      setView("liste");
-    });
+    if (editId !== null) {
+      await updateProduct(editId, form);
+      await auditLog("product_updated", `Produit modifié "${form.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
+      setEditId(null);
+    } else {
+      await addProduct(form);
+      await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
+    }
+    setForm(makeDefaultForm());
+    setView("liste");
   };
 
   const filtered = useMemo(() =>
