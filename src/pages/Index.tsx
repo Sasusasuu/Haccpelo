@@ -33,7 +33,7 @@ function ModuleFallback() {
 function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const { equipments, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError, addTask: addCleaningTask, deleteTask: deleteCleaningTask, logDone: logCleaningDone, deleteLog: deleteCleaningLog, retry: cleanRetry } = useCleaningPlan(userId);
-  const { establishmentName, profile, updateProfile, loading: profileLoading } = useEstablishmentName(userId);
+  const { establishmentName, profile, updateProfile, loading: profileLoading, refetch: refetchProfile } = useEstablishmentName(userId);
 
   if (profileLoading) {
     return (
@@ -59,8 +59,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
       <SetupPinPrompt
         userId={userId}
         onComplete={() => {
-          // Refetch profile to update manager_pin_hash
-          window.location.reload();
+          refetchProfile();
         }}
       />
     );
