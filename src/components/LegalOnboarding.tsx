@@ -8,9 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
+import LogoutButton from "@/components/LogoutButton";
+
 interface LegalOnboardingProps {
   userId: string;
   onComplete: () => Promise<void> | void;
+  onSignOut: () => void;
 }
 
 function useScrollDetection() {
@@ -51,7 +54,7 @@ function LegalTextPanel({
   );
 }
 
-export default function LegalOnboarding({ userId, onComplete }: LegalOnboardingProps) {
+export default function LegalOnboarding({ userId, onComplete, onSignOut }: LegalOnboardingProps) {
   const cgu = useScrollDetection();
   const cgv = useScrollDetection();
   const privacy = useScrollDetection();
@@ -111,6 +114,9 @@ export default function LegalOnboarding({ userId, onComplete }: LegalOnboardingP
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-3xl flex justify-end mb-2">
+        <LogoutButton onSignOut={onSignOut} />
+      </div>
       <div className="w-full max-w-3xl flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-center">Documents légaux</h1>
         <p className="text-muted-foreground text-center text-sm">

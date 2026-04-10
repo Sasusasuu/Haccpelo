@@ -6,13 +6,15 @@ import { Lock } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { hashPinRemote } from "@/lib/pinUtils";
 import { supabase } from "@/integrations/supabase/client";
+import LogoutButton from "@/components/LogoutButton";
 
 interface SetupPinPromptProps {
   userId: string;
   onComplete: () => void;
+  onSignOut: () => void;
 }
 
-export default function SetupPinPrompt({ userId, onComplete }: SetupPinPromptProps) {
+export default function SetupPinPrompt({ userId, onComplete, onSignOut }: SetupPinPromptProps) {
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,10 @@ export default function SetupPinPrompt({ userId, onComplete }: SetupPinPromptPro
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="w-full max-w-md flex justify-end mb-2">
+        <LogoutButton onSignOut={onSignOut} />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
