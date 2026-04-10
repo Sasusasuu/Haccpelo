@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/components/LoginPage";
 import OnboardingForm from "@/components/OnboardingForm";
 import LegalOnboarding from "@/components/LegalOnboarding";
+import SetupPinPrompt from "@/components/SetupPinPrompt";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
