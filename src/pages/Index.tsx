@@ -5,6 +5,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
+import { useEstablishmentName } from "@/hooks/useEstablishmentName";
 import { TableSkeleton } from "@/components/ui/loading-skeletons";
 
 const Dashboard = lazy(() => import("@/components/dashboard/Dashboard"));
@@ -29,17 +30,18 @@ function ModuleFallback() {
 function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const { equipments, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError, addTask: addCleaningTask, deleteTask: deleteCleaningTask, logDone: logCleaningDone, deleteLog: deleteCleaningLog, retry: cleanRetry } = useCleaningPlan(userId);
+  const { establishmentName } = useEstablishmentName(userId);
 
   return (
-    <AppLayout onSignOut={onSignOut}>
+    <AppLayout onSignOut={onSignOut} establishmentName={establishmentName}>
       <Suspense fallback={<ModuleFallback />}>
         <Routes>
           <Route path="/" element={<Dashboard userId={userId} />} />
-          <Route path="/haccp/dlc" element={<DLCModule userId={userId} />} />
+          <Route path="/haccp/dlc" element={<DLCModule userId={userId} establishmentName={establishmentName} />} />
           <Route path="/haccp/temperatures" element={<TemperaturesModule userId={userId} equipmentsList={equipments} />} />
           <Route path="/haccp/nettoyage" element={<CleaningModule userId={userId} cleaningTasks={cleaningTasks} cleaningLogs={cleaningLogs} logCleaningDone={logCleaningDone} deleteCleaningLog={deleteCleaningLog} loading={cleanLoading} error={cleanError} onRetry={cleanRetry} />} />
           <Route path="/haccp/parametres" element={<HACCPSettings userId={userId} equipmentsList={equipments} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />} />
-          <Route path="/haccp/rapport" element={<HACCPReportModule userId={userId} />} />
+          <Route path="/haccp/rapport" element={<HACCPReportModule userId={userId} establishmentName={establishmentName} />} />
           <Route path="/equipe/planning" element={<PlanningModule userId={userId} />} />
           <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
           <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
