@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/components/LoginPage";
 import OnboardingForm from "@/components/OnboardingForm";
+import SetupPinPrompt from "@/components/SetupPinPrompt";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
@@ -48,6 +49,18 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
         userId={userId}
         onComplete={async (data: Partial<EstablishmentProfile>) => {
           await updateProfile(data);
+        }}
+      />
+    );
+  }
+
+  if (!profile.manager_pin_hash) {
+    return (
+      <SetupPinPrompt
+        userId={userId}
+        onComplete={() => {
+          // Refetch profile to update manager_pin_hash
+          window.location.reload();
         }}
       />
     );
