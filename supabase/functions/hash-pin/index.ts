@@ -168,6 +168,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (!checkRateLimit(`idpin:${user_id}`)) return rateLimitResponse();
       const supabase = getServiceClient();
       let query = supabase.from("employees").select("id, pin_hash, is_manager").eq("user_id", user_id);
       if (managers_only) query = query.eq("is_manager", true);
