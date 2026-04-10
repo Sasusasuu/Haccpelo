@@ -71,16 +71,16 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
   };
 
   const filtered = useMemo(() =>
-    produits.filter((p: any) => {
+    produits.filter((p) => {
       const st = statusOf(p.dlc);
       const matchF = filtre === "tous" || (filtre === "alerte" && (st === "expire" || st === "urgent")) || (filtre === "ok" && st === "ok");
       const matchS = p.nom.toLowerCase().includes(search.toLowerCase()) || p.categorie.toLowerCase().includes(search.toLowerCase());
       return matchF && matchS;
-    }).sort((a: any, b: any) => (a.dlc || "").localeCompare(b.dlc || ""))
+    }).sort((a, b) => (a.dlc || "").localeCompare(b.dlc || ""))
   , [produits, filtre, search]);
 
   const nbAlerte = useMemo(() =>
-    produits.filter((p: any) => { const s = statusOf(p.dlc); return s === "expire" || s === "urgent"; }).length
+    produits.filter((p) => { const s = statusOf(p.dlc); return s === "expire" || s === "urgent"; }).length
   , [produits]);
 
   if (loading) {
