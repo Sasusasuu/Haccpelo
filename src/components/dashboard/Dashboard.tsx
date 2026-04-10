@@ -29,14 +29,15 @@ interface DashboardProps {
 export default function Dashboard({ userId }: DashboardProps) {
   const { produits, loading: prodLoading, error: prodError, retry: prodRetry } = useProducts(userId);
   const { employees, loading: empLoading } = useEmployees(userId);
-  const { logs: tempLogs, loading: tempLoading } = useTemperatureLogs(userId);
-  const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading } = useCleaningPlan(userId);
-  const { equipments, loading: equipLoading } = useEquipments(userId);
+  const { logs: tempLogs, loading: tempLoading, error: tempError } = useTemperatureLogs(userId);
+  const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError } = useCleaningPlan(userId);
+  const { equipments, loading: equipLoading, error: equipError } = useEquipments(userId);
   const { entries, loading: entriesLoading } = useTimeEntries(userId);
   const { memos, loading: memosLoading } = useMemos(userId);
 
   const today = todayStr();
   const loading = prodLoading || empLoading || tempLoading || cleanLoading || equipLoading || entriesLoading || memosLoading;
+  const anyError = prodError || tempError || cleanError || equipError;
 
   const dlcStats = useMemo(() => {
     let expired = 0, urgent = 0, ok = 0;
@@ -87,6 +88,10 @@ export default function Dashboard({ userId }: DashboardProps) {
           Vue d'ensemble — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         </p>
       </div>
+
+      {anyError && (
+        <ErrorAlert message={anyError} />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>

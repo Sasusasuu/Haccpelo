@@ -15,7 +15,7 @@ export function useMemos(userId: string) {
   const fetchMemos = useCallback(async () => {
     const { data, error } = await supabase
       .from("memos")
-      .select("*")
+      .select("id, content, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) {
@@ -43,13 +43,13 @@ export function useMemos(userId: string) {
   }, [userId]);
 
   const deleteMemo = useCallback(async (id: string) => {
-    const { error } = await supabase.from("memos").delete().eq("id", id);
+    const { error } = await supabase.from("memos").delete().eq("id", id).eq("user_id", userId);
     if (error) {
       toast.error("Erreur suppression");
     } else {
       setMemos(prev => prev.filter(m => m.id !== id));
     }
-  }, []);
+  }, [userId]);
 
   return { memos, loading, addMemo, deleteMemo };
 }
