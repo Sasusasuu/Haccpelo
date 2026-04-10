@@ -16,6 +16,7 @@ export interface EstablishmentProfile {
   cgv_accepted_at: string | null;
   privacy_policy_accepted_at: string | null;
   legal_documents_version: string | null;
+  subscription_status: string;
 }
 
 const DEFAULT_PROFILE: EstablishmentProfile = {
@@ -33,6 +34,7 @@ const DEFAULT_PROFILE: EstablishmentProfile = {
   cgv_accepted_at: null,
   privacy_policy_accepted_at: null,
   legal_documents_version: null,
+  subscription_status: "starter",
 };
 
 export function useEstablishmentName(userId: string | undefined) {
@@ -44,7 +46,7 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
         .eq("user_id", userId)
         .maybeSingle();
       if (data) {
@@ -63,6 +65,7 @@ export function useEstablishmentName(userId: string | undefined) {
           cgv_accepted_at: (data as any).cgv_accepted_at ?? null,
           privacy_policy_accepted_at: (data as any).privacy_policy_accepted_at ?? null,
           legal_documents_version: (data as any).legal_documents_version ?? null,
+          subscription_status: (data as any).subscription_status ?? "starter",
         });
       }
     } catch {}
