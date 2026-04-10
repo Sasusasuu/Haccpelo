@@ -22,25 +22,6 @@ export default function DLCModule({ userId }: DLCModuleProps) {
   const { produits, loading, error, addProduct, updateProduct, deleteProduct, uploadPhoto, retry } = useProducts(userId);
   const { log: auditLog } = useAuditLog(userId);
 
-  if (loading) {
-    return (
-      <div className="space-y-4 p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center space-y-3">
-          <p className="text-destructive font-medium">{error}</p>
-          <Button variant="outline" onClick={retry}>Réessayer</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [view, setView] = useState<"liste" | "ajouter" | "etiquette">("liste");
@@ -55,7 +36,6 @@ export default function DLCModule({ userId }: DLCModuleProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
 
   const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
