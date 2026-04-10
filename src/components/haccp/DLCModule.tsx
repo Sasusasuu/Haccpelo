@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useProductCatalog } from "@/hooks/useProductCatalog";
 import { useAuditLog } from "@/hooks/useAuditLog";
@@ -22,8 +22,11 @@ interface DLCModuleProps {
 
 export default function DLCModule({ userId, establishmentName = "Mon établissement" }: DLCModuleProps) {
   const { produits, loading, error, addProduct, updateProduct, deleteProduct, uploadPhoto, retry } = useProducts(userId);
+  const { findMatches: findCatalogMatches } = useProductCatalog(userId);
   const { log: auditLog } = useAuditLog(userId);
 
+  const [catalogSuggestions, setCatalogSuggestions] = useState<{ product_name: string; default_dlc_days: number; category: string }[]>([]);
+  const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [view, setView] = useState<"liste" | "ajouter" | "etiquette">("liste");
