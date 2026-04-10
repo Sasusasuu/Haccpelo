@@ -92,19 +92,8 @@ async function logAudit(
 }
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  const originAllowed = !!corsHeaders["Access-Control-Allow-Origin"];
-
   if (req.method === "OPTIONS") {
-    return originAllowed
-      ? new Response(null, { status: 204, headers: corsHeaders })
-      : new Response(null, { status: 403 });
-  }
-
-  if (!originAllowed) {
-    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
-      status: 403, headers: { "Content-Type": "application/json" },
-    });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
