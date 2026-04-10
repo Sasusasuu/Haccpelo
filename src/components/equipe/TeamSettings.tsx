@@ -3,6 +3,7 @@ import { useEmployees, hashEmployeePin, verifyEmployeePin } from "@/hooks/useEmp
 import { useSettings } from "@/hooks/useSettings";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { useEstablishmentName } from "@/hooks/useEstablishmentName";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,8 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
   const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog, exportCSV } = useAuditLog(userId);
+  const { establishmentName, updateName: updateEstablishmentName } = useEstablishmentName(userId);
+  const [editEstabName, setEditEstabName] = useState<string | null>(null);
 
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
@@ -291,6 +294,28 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Shield className="h-4 w-4" /> Connecté en tant que <strong>{currentManagerName}</strong>
       </div>
+
+      {/* Nom de l'établissement */}
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-sm">Nom de l'établissement</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input
+              value={editEstabName !== null ? editEstabName : establishmentName}
+              onChange={e => setEditEstabName(e.target.value)}
+              onFocus={() => { if (editEstabName === null) setEditEstabName(establishmentName); }}
+              placeholder="Ex: Restaurant Le Bon Goût"
+            />
+            <Button variant="outline" onClick={async () => {
+              if (editEstabName && editEstabName.trim()) {
+                await updateEstablishmentName(editEstabName.trim());
+                await auditLog("establishment_name_changed", `Nom établissement modifié: "${editEstabName.trim()}"`, currentManagerId, currentManagerName);
+                setEditEstabName(null);
+              }
+            }}>Enregistrer</Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* PIN manager legacy */}
       <Card>

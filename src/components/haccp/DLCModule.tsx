@@ -16,9 +16,10 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface DLCModuleProps {
   userId: string;
+  establishmentName?: string;
 }
 
-export default function DLCModule({ userId }: DLCModuleProps) {
+export default function DLCModule({ userId, establishmentName = "Mon établissement" }: DLCModuleProps) {
   const { produits, loading, error, addProduct, updateProduct, deleteProduct, uploadPhoto, retry } = useProducts(userId);
   const { log: auditLog } = useAuditLog(userId);
 
@@ -165,7 +166,7 @@ export default function DLCModule({ userId }: DLCModuleProps) {
         </div>
         <div className="flex justify-center">
           <div className="w-72 border-2 border-foreground rounded p-4 text-center font-mono bg-card">
-            <div className="text-[11px] tracking-[2px] uppercase border-b border-foreground pb-1.5 mb-2.5">Holding NHA</div>
+            <div className="text-[11px] tracking-[2px] uppercase border-b border-foreground pb-1.5 mb-2.5">{establishmentName}</div>
             <div className="text-xl font-bold my-2.5">{etiquette.nom}</div>
             <div className="text-sm mb-1.5">{etiquette.categorie}</div>
             {etiquette.quantite && <div className="text-sm mb-2">{etiquette.quantite}</div>}

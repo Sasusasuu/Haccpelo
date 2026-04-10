@@ -20,6 +20,7 @@ import autoTable from "jspdf-autotable";
 
 interface HACCPReportModuleProps {
   userId: string;
+  establishmentName?: string;
 }
 
 const MONTH_NAMES = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -35,7 +36,7 @@ function getMonthOptions() {
   return opts;
 }
 
-export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
+export default function HACCPReportModule({ userId, establishmentName = "Mon établissement" }: HACCPReportModuleProps) {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [generating, setGenerating] = useState(false);
@@ -131,7 +132,7 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
       doc.setFont("helvetica", "normal");
       doc.text(`${MONTH_NAMES[month - 1]} ${year}`, pageW / 2, y, { align: "center" });
       y += 5;
-      doc.text(`Holding NHA — Généré le ${new Date().toLocaleDateString("fr-FR")}`, pageW / 2, y, { align: "center" });
+      doc.text(`${establishmentName} — Généré le ${new Date().toLocaleDateString("fr-FR")}`, pageW / 2, y, { align: "center" });
       y += 3;
       doc.setDrawColor(17, 17, 17);
       doc.setLineWidth(0.5);
@@ -350,7 +351,7 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
         doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(128);
-        doc.text(`Rapport HACCP — ${MONTH_NAMES[month - 1]} ${year} — Holding NHA`, margin, pageH - 8);
+        doc.text(`Rapport HACCP — ${MONTH_NAMES[month - 1]} ${year} — ${establishmentName}`, margin, pageH - 8);
         doc.text(`Page ${i}/${totalPages}`, pageW - margin, pageH - 8, { align: "right" });
         doc.text("Document généré automatiquement — À conserver pour contrôle sanitaire", pageW / 2, pageH - 4, { align: "center" });
         doc.setTextColor(0);
