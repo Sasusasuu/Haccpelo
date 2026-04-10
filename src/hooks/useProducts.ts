@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
-import { useTraceabilityPhotos } from "./useTraceabilityPhotos";
+
 
 export interface Product {
   id: string;
