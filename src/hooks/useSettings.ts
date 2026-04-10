@@ -16,7 +16,7 @@ export function useSettings(userId: string | undefined) {
         .from("settings")
         .select("manager_pin_hash, planning_session_minutes")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (dbError && dbError.code === "PGRST116") {
         await supabase.from("settings").insert({ user_id: userId });
         setManagerPinHash(null);

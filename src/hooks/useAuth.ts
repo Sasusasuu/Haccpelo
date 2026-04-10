@@ -22,7 +22,14 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Session may already be expired — clear local state anyway
+      setSession(null);
+    }
+  };
 
   return { session, loading, signOut };
 }

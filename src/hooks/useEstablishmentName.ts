@@ -38,7 +38,7 @@ export function useEstablishmentName(userId: string | undefined) {
         .from("settings")
         .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (data) {
         setProfile({
           establishment_name: (data as any).establishment_name || DEFAULT_PROFILE.establishment_name,
