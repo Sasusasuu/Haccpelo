@@ -12,6 +12,10 @@ export interface EstablishmentProfile {
   manager_name: string;
   onboarding_completed: boolean;
   manager_pin_hash: string | null;
+  cgu_accepted_at: string | null;
+  cgv_accepted_at: string | null;
+  privacy_policy_accepted_at: string | null;
+  legal_documents_version: string | null;
 }
 
 const DEFAULT_PROFILE: EstablishmentProfile = {
@@ -25,6 +29,10 @@ const DEFAULT_PROFILE: EstablishmentProfile = {
   manager_name: "",
   onboarding_completed: false,
   manager_pin_hash: null,
+  cgu_accepted_at: null,
+  cgv_accepted_at: null,
+  privacy_policy_accepted_at: null,
+  legal_documents_version: null,
 };
 
 export function useEstablishmentName(userId: string | undefined) {
@@ -36,7 +44,7 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version")
         .eq("user_id", userId)
         .maybeSingle();
       if (data) {
@@ -51,6 +59,10 @@ export function useEstablishmentName(userId: string | undefined) {
           manager_name: (data as any).manager_name || "",
           onboarding_completed: (data as any).onboarding_completed ?? false,
           manager_pin_hash: (data as any).manager_pin_hash ?? null,
+          cgu_accepted_at: (data as any).cgu_accepted_at ?? null,
+          cgv_accepted_at: (data as any).cgv_accepted_at ?? null,
+          privacy_policy_accepted_at: (data as any).privacy_policy_accepted_at ?? null,
+          legal_documents_version: (data as any).legal_documents_version ?? null,
         });
       }
     } catch {}
