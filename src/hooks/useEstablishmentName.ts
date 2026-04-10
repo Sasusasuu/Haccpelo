@@ -24,6 +24,7 @@ const DEFAULT_PROFILE: EstablishmentProfile = {
   city: "",
   manager_name: "",
   onboarding_completed: false,
+  manager_pin_hash: null,
 };
 
 export function useEstablishmentName(userId: string | undefined) {
@@ -35,7 +36,7 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_hash")
         .eq("user_id", userId)
         .single();
       if (data) {
@@ -49,6 +50,7 @@ export function useEstablishmentName(userId: string | undefined) {
           city: (data as any).city || "",
           manager_name: (data as any).manager_name || "",
           onboarding_completed: (data as any).onboarding_completed ?? false,
+          manager_pin_hash: (data as any).manager_pin_hash ?? null,
         });
       }
     } catch {}
