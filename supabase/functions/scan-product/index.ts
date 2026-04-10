@@ -35,7 +35,38 @@ serve(async (req) => {
 
   try {
     const { image_url } = await req.json();
-    if (!image_url) throw new Error("image_url is required");
+
+    // --- Input validation ---
+    if (!image_url || typeof image_url !== "string") {
+      return new Response(JSON.stringify({ error: "image_url est requis" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!image_url.startsWith("https://")) {
+      return new Response(JSON.stringify({ error: "image_url doit utiliser HTTPS" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const urlHost = new URL(image_url).hostname;
+    if (!urlHost.endsWith(".supabase.co")) {
+      return new Response(JSON.stringify({ error: "image_url doit pointer vers le storage Supabase (*.supabase.co)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check image size via HEAD request (max 10 MB)
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+    try {
+      const headRes = await fetch(image_url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
+      const contentLength = headRes.headers.get("content-length");
+      if (contentLength && parseInt(contentLength, 10) > MAX_IMAGE_BYTES) {
+        return new Response(JSON.stringify({ error: "L'image dépasse la taille maximale de 10 MB" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      // HEAD failed — proceed anyway, AI gateway will reject if too large
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

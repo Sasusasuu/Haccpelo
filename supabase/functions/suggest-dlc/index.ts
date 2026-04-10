@@ -35,6 +35,40 @@ serve(async (req) => {
 
   try {
     const { nom, categorie, fab } = await req.json();
+
+    // --- Input validation ---
+    const VALID_CATEGORIES = ["Viande","Poisson","Produits laitiers","Légumes","Fruits","Charcuterie","Épicerie","Boissons","Autre"];
+    const SAFE_TEXT = /^[\p{L}\p{N}\s.,;:!'°%/()-]+$/u;
+    const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (!nom || typeof nom !== "string" || nom.trim().length === 0) {
+      return new Response(JSON.stringify({ error: "nom est requis" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (nom.length > 100) {
+      return new Response(JSON.stringify({ error: "nom ne doit pas dépasser 100 caractères" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!SAFE_TEXT.test(nom)) {
+      return new Response(JSON.stringify({ error: "nom contient des caractères non autorisés" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (categorie && !VALID_CATEGORIES.includes(categorie)) {
+      return new Response(JSON.stringify({ error: `categorie invalide. Valeurs acceptées : ${VALID_CATEGORIES.join(", ")}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (fab) {
+      if (typeof fab !== "string" || !ISO_DATE.test(fab) || isNaN(Date.parse(fab))) {
+        return new Response(JSON.stringify({ error: "fab doit être une date ISO 8601 valide (YYYY-MM-DD)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
