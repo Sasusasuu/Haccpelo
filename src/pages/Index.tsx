@@ -22,6 +22,7 @@ const PlanningModule = lazy(() => import("@/components/equipe/PlanningModule"));
 const TimeclockModule = lazy(() => import("@/components/equipe/TimeclockModule"));
 const TeamSettings = lazy(() => import("@/components/equipe/TeamSettings"));
 const MemosModule = lazy(() => import("@/components/equipe/MemosModule"));
+const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
 
 function ModuleFallback() {
   return (
@@ -92,6 +93,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
           <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
           <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
           <Route path="/equipe/parametres" element={<TeamSettings userId={userId} onSignOut={onSignOut} />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
