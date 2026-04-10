@@ -111,13 +111,13 @@ export default function LegalOnboarding({ userId, onComplete }: LegalOnboardingP
           </TabsList>
 
           <TabsContent value="cgu">
-            <LegalTextPanel text={CGU_TEXT} onScroll={cgu.handleScroll} />
+            <LegalTextPanel text={CGU_TEXT} onScroll={cgu.handleScroll} containerRef={cgu.containerRef} />
           </TabsContent>
           <TabsContent value="cgv">
-            <LegalTextPanel text={CGV_TEXT} onScroll={cgv.handleScroll} />
+            <LegalTextPanel text={CGV_TEXT} onScroll={cgv.handleScroll} containerRef={cgv.containerRef} />
           </TabsContent>
           <TabsContent value="privacy">
-            <LegalTextPanel text={PRIVACY_TEXT} onScroll={privacy.handleScroll} />
+            <LegalTextPanel text={PRIVACY_TEXT} onScroll={privacy.handleScroll} containerRef={privacy.containerRef} />
           </TabsContent>
         </Tabs>
 
