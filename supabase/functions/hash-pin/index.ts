@@ -128,7 +128,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`emp:${employee_id}`)) return rateLimitResponse();
+      if (!checkRateLimit(`emp:${employee_id}`)) return rateLimitResponse(corsHeaders);
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("employees").select("pin_hash").eq("id", employee_id).single();
       if (error || !data?.pin_hash) {
@@ -161,7 +161,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`mgr:${user_id}`)) return rateLimitResponse();
+      if (!checkRateLimit(`mgr:${user_id}`)) return rateLimitResponse(corsHeaders);
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("settings").select("manager_pin_hash").eq("user_id", user_id).single();
       if (error || !data?.manager_pin_hash) {
@@ -193,7 +193,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`idpin:${user_id}`)) return rateLimitResponse();
+      if (!checkRateLimit(`idpin:${user_id}`)) return rateLimitResponse(corsHeaders);
       const supabase = getServiceClient();
       let query = supabase.from("employees").select("id, pin_hash, is_manager").eq("user_id", user_id);
       if (managers_only) query = query.eq("is_manager", true);
