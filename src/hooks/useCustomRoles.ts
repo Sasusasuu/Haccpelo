@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CustomRole {
@@ -20,6 +20,7 @@ export function useCustomRoles(userId: string | undefined) {
   const [roles, setRoles] = useState<CustomRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const seeding = useRef(false);
 
   const fetchRoles = useCallback(async () => {
     if (!userId) return;
@@ -32,13 +33,20 @@ export function useCustomRoles(userId: string | undefined) {
         .order("created_at", { ascending: true });
       if (dbError) throw dbError;
       if (data) {
-        if (data.length === 0) {
-          const rows = DEFAULT_ROLES.map(r => ({ user_id: userId, label: r.label, color: r.color }));
-          const { data: seeded } = await supabase
-            .from("custom_roles")
-            .insert(rows)
-            .select("id, label, color");
-          if (seeded) setRoles(seeded);
+        if (data.length === 0 && !seeding.current) {
+          // Prevent race condition: mark seeding before insert
+          seeding.current = true;
+          try {
+            const rows = DEFAULT_ROLES.map(r => ({ user_id: userId, label: r.label, color: r.color }));
+            const { data: seeded, error: seedErr } = await supabase
+              .from("custom_roles")
+              .upsert(rows, { onConflict: "user_id,label" })
+              .select("id, label, color");
+            if (seedErr) throw seedErr;
+            if (seeded) setRoles(seeded);
+          } finally {
+            seeding.current = false;
+          }
         } else {
           setRoles(data);
         }
@@ -54,6 +62,7 @@ export function useCustomRoles(userId: string | undefined) {
 
   const addRole = async (label: string, color: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("custom_roles")
@@ -69,6 +78,7 @@ export function useCustomRoles(userId: string | undefined) {
 
   const updateRole = async (id: string, updates: Partial<Pick<CustomRole, "label" | "color">>) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase
         .from("custom_roles")
@@ -84,6 +94,7 @@ export function useCustomRoles(userId: string | undefined) {
 
   const deleteRole = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase
         .from("custom_roles")
