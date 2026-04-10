@@ -149,21 +149,31 @@ async function logAudit(
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`emp:${employee_id}`)) return rateLimitResponse(corsHeaders);
+      if (!checkRateLimit(`emp:${employee_id}`)) {
+        const sb = getServiceClient();
+        logAudit(sb, { employee_id, action_type: "pin_rate_limited", description: "Rate limit dépassé pour vérification PIN employé" });
+        return rateLimitResponse(corsHeaders);
+      }
       const supabase = getServiceClient();
-      const { data, error } = await supabase.from("employees").select("pin_hash").eq("id", employee_id).single();
+      const { data, error } = await supabase.from("employees").select("pin_hash, user_id").eq("id", employee_id).single();
       if (error || !data?.pin_hash) {
+        logAudit(supabase, { user_id: data?.user_id, employee_id, action_type: "pin_failed", description: "Vérification PIN employé échouée (pas de hash)" });
         return new Response(JSON.stringify({ valid: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Legacy short hashes — force re-set
       if (!data.pin_hash.includes(":")) {
+        logAudit(supabase, { user_id: data.user_id, employee_id, action_type: "pin_failed", description: "Vérification PIN employé échouée (hash legacy)" });
         return new Response(JSON.stringify({ valid: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const valid = await verifyPin(pin, data.pin_hash);
+      logAudit(supabase, {
+        user_id: data.user_id, employee_id,
+        action_type: valid ? "pin_success" : "pin_failed",
+        description: valid ? "Vérification PIN employé réussie" : "Vérification PIN employé échouée (code incorrect)",
+      });
       return new Response(JSON.stringify({ valid }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
