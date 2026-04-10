@@ -12,7 +12,6 @@ export interface EstablishmentProfile {
   city: string;
   manager_name: string;
   onboarding_completed: boolean;
-  has_manager_pin: boolean;
   manager_pin_configured: boolean;
   cgu_accepted_at: string | null;
   cgv_accepted_at: string | null;
@@ -31,7 +30,6 @@ const DEFAULT_PROFILE: EstablishmentProfile = {
   city: "",
   manager_name: "",
   onboarding_completed: false,
-  has_manager_pin: false,
   manager_pin_configured: false,
   cgu_accepted_at: null,
   cgv_accepted_at: null,
@@ -51,7 +49,7 @@ function toSettingsPayload(updates: Partial<EstablishmentProfile>): TablesUpdate
     city: updates.city,
     manager_name: updates.manager_name,
     onboarding_completed: updates.onboarding_completed,
-    has_manager_pin: updates.has_manager_pin,
+    manager_pin_configured: (updates as any).manager_pin_configured,
     cgu_accepted_at: updates.cgu_accepted_at,
     cgv_accepted_at: updates.cgv_accepted_at,
     privacy_policy_accepted_at: updates.privacy_policy_accepted_at,
@@ -69,7 +67,7 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, has_manager_pin, manager_pin_configured, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, manager_pin_configured, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -84,7 +82,6 @@ export function useEstablishmentName(userId: string | undefined) {
           city: data.city ?? "",
           manager_name: data.manager_name ?? "",
           onboarding_completed: data.onboarding_completed ?? false,
-          has_manager_pin: !!data.has_manager_pin,
           manager_pin_configured: !!(data as any).manager_pin_configured,
           cgu_accepted_at: data.cgu_accepted_at ?? null,
           cgv_accepted_at: data.cgv_accepted_at ?? null,
