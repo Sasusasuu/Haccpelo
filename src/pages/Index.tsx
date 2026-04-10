@@ -86,7 +86,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     );
   }
 
-  if (!profile.has_manager_pin) {
+  if (!profile.manager_pin_configured) {
     return (
       <SetupPinPrompt
         userId={userId}

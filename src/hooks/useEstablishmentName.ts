@@ -69,7 +69,7 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, has_manager_pin, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed, has_manager_pin, manager_pin_configured, cgu_accepted_at, cgv_accepted_at, privacy_policy_accepted_at, legal_documents_version, subscription_status")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -85,6 +85,7 @@ export function useEstablishmentName(userId: string | undefined) {
           manager_name: data.manager_name ?? "",
           onboarding_completed: data.onboarding_completed ?? false,
           has_manager_pin: !!data.has_manager_pin,
+          manager_pin_configured: !!(data as any).manager_pin_configured,
           cgu_accepted_at: data.cgu_accepted_at ?? null,
           cgv_accepted_at: data.cgv_accepted_at ?? null,
           privacy_policy_accepted_at: data.privacy_policy_accepted_at ?? null,
