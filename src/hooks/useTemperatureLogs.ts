@@ -37,6 +37,7 @@ export function useTemperatureLogs(userId: string | undefined) {
 
   const addLog = async (log: Omit<TemperatureLog, "id">) => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("temperature_logs")
@@ -52,6 +53,7 @@ export function useTemperatureLogs(userId: string | undefined) {
 
   const deleteLog = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase.from("temperature_logs").delete().eq("id", id).eq("user_id", userId);
       if (dbError) throw dbError;

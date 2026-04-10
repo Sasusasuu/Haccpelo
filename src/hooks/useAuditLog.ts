@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AuditEntry {
@@ -41,6 +41,8 @@ const CATEGORY_MAP: Record<string, AuditCategory> = {
   export_comptable: "parametres",
   manager_pin_changed: "parametres",
   session_duration_changed: "parametres",
+  establishment_updated: "parametres",
+  establishment_name_changed: "parametres",
 };
 
 export function resolveCategory(actionType: string): AuditCategory {
@@ -51,6 +53,7 @@ export function useAuditLog(userId: string) {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+  const loadingMore = useRef(false);
   const PAGE_SIZE = 50;
 
   const fetchLogs = useCallback(async (offset = 0) => {
@@ -70,8 +73,18 @@ export function useAuditLog(userId: string) {
 
   useEffect(() => { fetchLogs(0); }, [fetchLogs]);
 
-  const loadMore = () => fetchLogs(logs.length);
+  // Fix: prevent double-click sending same offset twice
+  const loadMore = useCallback(async () => {
+    if (loadingMore.current) return;
+    loadingMore.current = true;
+    try {
+      await fetchLogs(logs.length);
+    } finally {
+      loadingMore.current = false;
+    }
+  }, [fetchLogs, logs.length]);
 
+  // Fix: try/catch around audit log insert — silent failure logged to console
   const log = useCallback(async (
     actionType: string,
     description: string,
@@ -87,12 +100,16 @@ export function useAuditLog(userId: string) {
       category,
       description,
     };
-    const { data } = await supabase
-      .from("audit_logs")
-      .insert(entry)
-      .select("id, employee_id, employee_name, action_type, category, description, created_at")
-      .single();
-    if (data) setLogs(prev => [data as AuditEntry, ...prev]);
+    try {
+      const { data } = await supabase
+        .from("audit_logs")
+        .insert(entry)
+        .select("id, employee_id, employee_name, action_type, category, description, created_at")
+        .single();
+      if (data) setLogs(prev => [data as AuditEntry, ...prev]);
+    } catch (err) {
+      console.warn("Échec de l'enregistrement du log d'audit:", err);
+    }
   }, [userId]);
 
   const exportCSV = useCallback(() => {
@@ -110,7 +127,6 @@ export function useAuditLog(userId: string) {
     const csv = "\uFEFF" + [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
 
-    // Try native share on mobile
     if (navigator.share && navigator.canShare?.({ files: [new File([blob], "logs.csv", { type: "text/csv" })] })) {
       navigator.share({
         files: [new File([blob], "journal_activite.csv", { type: "text/csv" })],

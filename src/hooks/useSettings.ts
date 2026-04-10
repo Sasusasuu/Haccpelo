@@ -45,7 +45,6 @@ export function useSettings(userId: string | undefined) {
         .eq("user_id", userId)
         .single();
       if (dbError && dbError.code === "PGRST116") {
-        // No settings row yet — create one without a PIN (user must set their own)
         await supabase.from("settings").insert({ user_id: userId });
         setManagerPinHash(null);
       } else if (dbError) {
@@ -68,8 +67,14 @@ export function useSettings(userId: string | undefined) {
     return verifyPinRemote(pin, managerPinHash);
   };
 
+  // Fix: validate PIN format before calling edge function
   const changePin = async (newPin: string) => {
     if (!userId) return;
+    if (!/^\d{4}$/.test(newPin)) {
+      setError("Le code PIN doit contenir exactement 4 chiffres.");
+      return;
+    }
+    setError(null);
     try {
       const newHash = await hashPinRemote(newPin);
       const { error: dbError } = await supabase
@@ -85,6 +90,7 @@ export function useSettings(userId: string | undefined) {
 
   const updateSessionMinutes = async (minutes: number) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase
         .from("settings")

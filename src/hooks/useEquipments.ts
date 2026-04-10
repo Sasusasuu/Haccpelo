@@ -34,6 +34,7 @@ export function useEquipments(userId: string | undefined) {
 
   const addEquipment = async (name: string, type: "frigo" | "congelateur") => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("equipments")
@@ -49,6 +50,7 @@ export function useEquipments(userId: string | undefined) {
 
   const updateEquipment = async (id: string, name: string, type: "frigo" | "congelateur") => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase
         .from("equipments")
@@ -64,6 +66,7 @@ export function useEquipments(userId: string | undefined) {
 
   const deleteEquipment = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase.from("equipments").delete().eq("id", id).eq("user_id", userId);
       if (dbError) throw dbError;

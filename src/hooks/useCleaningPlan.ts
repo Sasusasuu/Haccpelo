@@ -44,6 +44,7 @@ export function useCleaningPlan(userId: string | undefined) {
 
   const addTask = async (task: Omit<CleaningTask, "id">) => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("cleaning_tasks")
@@ -59,6 +60,7 @@ export function useCleaningPlan(userId: string | undefined) {
 
   const deleteTask = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase.from("cleaning_tasks").delete().eq("id", id).eq("user_id", userId);
       if (dbError) throw dbError;
@@ -71,6 +73,7 @@ export function useCleaningPlan(userId: string | undefined) {
 
   const logDone = async (taskId: string, doneBy: string, doneDate?: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("cleaning_logs")
@@ -86,6 +89,7 @@ export function useCleaningPlan(userId: string | undefined) {
 
   const deleteLog = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase.from("cleaning_logs").delete().eq("id", id).eq("user_id", userId);
       if (dbError) throw dbError;
