@@ -14,7 +14,7 @@ export function useSettings(userId: string | undefined) {
     try {
       const { data, error: dbError } = await supabase
         .from("settings")
-        .select("manager_pin_hash, planning_session_minutes")
+        .select("planning_session_minutes, manager_pin_hash")
         .eq("user_id", userId)
         .maybeSingle();
       if (dbError && dbError.code === "PGRST116") {
@@ -24,6 +24,7 @@ export function useSettings(userId: string | undefined) {
         throw dbError;
       } else {
         if (data?.planning_session_minutes != null) setPlanningSessionMinutes(data.planning_session_minutes);
+        // Only store boolean, never expose hash to app state
         setHasManagerPin(!!data?.manager_pin_hash);
       }
     } catch {
