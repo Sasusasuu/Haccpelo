@@ -58,19 +58,22 @@ export default function LegalOnboarding({ userId, onComplete }: LegalOnboardingP
     setSubmitting(true);
     try {
       const now = new Date().toISOString();
-      const { error } = await supabase
+      console.log("[LegalOnboarding] Submitting for userId:", userId);
+      const { error, count } = await supabase
         .from("settings")
         .update({
           cgu_accepted_at: now,
           cgv_accepted_at: now,
           privacy_policy_accepted_at: now,
           legal_documents_version: LEGAL_VERSION,
-        } as any)
+        })
         .eq("user_id", userId);
+      console.log("[LegalOnboarding] Update result:", { error, count });
       if (error) throw error;
       toast.success("Documents légaux acceptés.");
       onComplete();
-    } catch {
+    } catch (err) {
+      console.error("[LegalOnboarding] Error:", err);
       toast.error("Erreur lors de la validation. Réessayez.");
     } finally {
       setSubmitting(false);
