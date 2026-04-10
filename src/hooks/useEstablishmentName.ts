@@ -65,6 +65,7 @@ export function useEstablishmentName(userId: string | undefined) {
           cgv_accepted_at: (data as any).cgv_accepted_at ?? null,
           privacy_policy_accepted_at: (data as any).privacy_policy_accepted_at ?? null,
           legal_documents_version: (data as any).legal_documents_version ?? null,
+          subscription_status: (data as any).subscription_status ?? "starter",
         });
       }
     } catch {}
