@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 
 import { CGU_TEXT, CGV_TEXT, PRIVACY_TEXT, LEGAL_VERSION } from "@/constants/legalTexts";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 interface LegalOnboardingProps {
   userId: string;
-  onComplete: () => void;
+  onComplete: () => Promise<void> | void;
 }
 
 function useScrollDetection() {
@@ -67,20 +68,39 @@ export default function LegalOnboarding({ userId, onComplete }: LegalOnboardingP
     setSubmitting(true);
     try {
       const now = new Date().toISOString();
-      console.log("[LegalOnboarding] Submitting for userId:", userId);
-      const { error, count } = await supabase
+      const legalPayload: TablesUpdate<"settings"> = {
+        cgu_accepted_at: now,
+        cgv_accepted_at: now,
+        privacy_policy_accepted_at: now,
+        legal_documents_version: LEGAL_VERSION,
+        onboarding_completed: true,
+      };
+
+      const { data: existingRow, error: existingRowError } = await supabase
         .from("settings")
-        .update({
-          cgu_accepted_at: now,
-          cgv_accepted_at: now,
-          privacy_policy_accepted_at: now,
-          legal_documents_version: LEGAL_VERSION,
-        })
-        .eq("user_id", userId);
-      console.log("[LegalOnboarding] Update result:", { error, count });
-      if (error) throw error;
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (existingRowError) throw existingRowError;
+
+      if (existingRow) {
+        const { error } = await supabase
+          .from("settings")
+          .update(legalPayload)
+          .eq("id", existingRow.id);
+        if (error) throw error;
+      } else {
+        const insertPayload: TablesInsert<"settings"> = {
+          user_id: userId,
+          ...legalPayload,
+        };
+        const { error } = await supabase.from("settings").insert(insertPayload);
+        if (error) throw error;
+      }
+
       toast.success("Documents légaux acceptés.");
-      onComplete();
+      await onComplete();
     } catch (err) {
       console.error("[LegalOnboarding] Error:", err);
       toast.error("Erreur lors de la validation. Réessayez.");

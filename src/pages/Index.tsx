@@ -4,7 +4,7 @@ import LoginPage from "@/components/LoginPage";
 import OnboardingForm from "@/components/OnboardingForm";
 // import SetupPinPrompt from "@/components/SetupPinPrompt";
 import LegalOnboarding from "@/components/LegalOnboarding";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
@@ -35,7 +35,7 @@ function ModuleFallback() {
 function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const { equipments, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError, addTask: addCleaningTask, deleteTask: deleteCleaningTask, logDone: logCleaningDone, deleteLog: deleteCleaningLog, retry: cleanRetry } = useCleaningPlan(userId);
-  const { establishmentName, profile, updateProfile, loading: profileLoading, refetch: refetchProfile } = useEstablishmentName(userId);
+  const navigate = useNavigate();
 
   if (profileLoading) {
     return (
@@ -66,8 +66,9 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     return (
       <LegalOnboarding
         userId={userId}
-        onComplete={() => {
-          refetchProfile();
+        onComplete={async () => {
+          await refetchProfile();
+          navigate("/");
         }}
       />
     );
