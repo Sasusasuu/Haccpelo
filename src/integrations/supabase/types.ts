@@ -316,29 +316,53 @@ export type Database = {
       }
       settings: {
         Row: {
+          address: string | null
+          city: string | null
           created_at: string
+          email: string | null
           establishment_name: string
           id: string
+          manager_name: string | null
           manager_pin_hash: string | null
+          onboarding_completed: boolean
+          phone: string | null
           planning_session_minutes: number
+          postal_code: string | null
+          siret: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           created_at?: string
+          email?: string | null
           establishment_name?: string
           id?: string
+          manager_name?: string | null
           manager_pin_hash?: string | null
+          onboarding_completed?: boolean
+          phone?: string | null
           planning_session_minutes?: number
+          postal_code?: string | null
+          siret?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
+          city?: string | null
           created_at?: string
+          email?: string | null
           establishment_name?: string
           id?: string
+          manager_name?: string | null
           manager_pin_hash?: string | null
+          onboarding_completed?: boolean
+          phone?: string | null
           planning_session_minutes?: number
+          postal_code?: string | null
+          siret?: string | null
           updated_at?: string
           user_id?: string
         }
