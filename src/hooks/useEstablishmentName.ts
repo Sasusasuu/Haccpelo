@@ -1,8 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface EstablishmentProfile {
+  establishment_name: string;
+  siret: string;
+  email: string;
+  phone: string;
+  address: string;
+  postal_code: string;
+  city: string;
+  manager_name: string;
+  onboarding_completed: boolean;
+}
+
+const DEFAULT_PROFILE: EstablishmentProfile = {
+  establishment_name: "Mon établissement",
+  siret: "",
+  email: "",
+  phone: "",
+  address: "",
+  postal_code: "",
+  city: "",
+  manager_name: "",
+  onboarding_completed: false,
+};
+
 export function useEstablishmentName(userId: string | undefined) {
-  const [establishmentName, setEstablishmentName] = useState("Mon établissement");
+  const [profile, setProfile] = useState<EstablishmentProfile>(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
 
   const fetch_ = useCallback(async () => {
@@ -10,10 +34,22 @@ export function useEstablishmentName(userId: string | undefined) {
     try {
       const { data } = await supabase
         .from("settings")
-        .select("establishment_name")
+        .select("establishment_name, siret, email, phone, address, postal_code, city, manager_name, onboarding_completed")
         .eq("user_id", userId)
         .single();
-      if (data?.establishment_name) setEstablishmentName(data.establishment_name);
+      if (data) {
+        setProfile({
+          establishment_name: (data as any).establishment_name || DEFAULT_PROFILE.establishment_name,
+          siret: (data as any).siret || "",
+          email: (data as any).email || "",
+          phone: (data as any).phone || "",
+          address: (data as any).address || "",
+          postal_code: (data as any).postal_code || "",
+          city: (data as any).city || "",
+          manager_name: (data as any).manager_name || "",
+          onboarding_completed: (data as any).onboarding_completed ?? false,
+        });
+      }
     } catch {}
     finally { setLoading(false); }
   }, [userId]);
@@ -27,8 +63,24 @@ export function useEstablishmentName(userId: string | undefined) {
       .from("settings")
       .update({ establishment_name: trimmed } as any)
       .eq("user_id", userId);
-    if (!error) setEstablishmentName(trimmed);
+    if (!error) setProfile(prev => ({ ...prev, establishment_name: trimmed }));
   }, [userId]);
 
-  return { establishmentName, updateName, loading };
+  const updateProfile = useCallback(async (updates: Partial<EstablishmentProfile>) => {
+    if (!userId) return;
+    const { error } = await supabase
+      .from("settings")
+      .update(updates as any)
+      .eq("user_id", userId);
+    if (!error) setProfile(prev => ({ ...prev, ...updates }));
+  }, [userId]);
+
+  return {
+    establishmentName: profile.establishment_name,
+    profile,
+    updateName,
+    updateProfile,
+    loading,
+    refetch: fetch_,
+  };
 }
