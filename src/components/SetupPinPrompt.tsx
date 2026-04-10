@@ -33,7 +33,7 @@ export default function SetupPinPrompt({ userId, onComplete }: SetupPinPromptPro
       const hash = await hashPinRemote(pin);
       const { error: dbError } = await supabase
         .from("settings")
-        .update({ manager_pin_hash: hash })
+        .update({ manager_pin_hash: hash, has_manager_pin: true })
         .eq("user_id", userId);
       if (dbError) throw dbError;
       onComplete();
