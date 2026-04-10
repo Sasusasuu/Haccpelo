@@ -24,7 +24,7 @@ export function useSettings(userId: string | undefined) {
         throw dbError;
       } else {
         if (data?.planning_session_minutes != null) setPlanningSessionMinutes(data.planning_session_minutes);
-        setHasManagerPin(!!(data as any)?.has_manager_pin);
+        setHasManagerPin(!!data?.has_manager_pin);
       }
     } catch {
       setError("Impossible de charger les paramètres.");
@@ -51,7 +51,7 @@ export function useSettings(userId: string | undefined) {
       const newHash = await hashPinRemote(newPin);
       const { error: dbError } = await supabase
         .from("settings")
-        .update({ manager_pin_hash: newHash } as any)
+        .update({ manager_pin_hash: newHash })
         .eq("user_id", userId);
       if (dbError) throw dbError;
       setHasManagerPin(true);
