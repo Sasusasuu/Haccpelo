@@ -28,10 +28,10 @@ interface DashboardProps {
 
 export default function Dashboard({ userId }: DashboardProps) {
   const { produits, loading: prodLoading, error: prodError, retry: prodRetry } = useProducts(userId);
-  const { employees, loading: empLoading, error: empError, retry: empRetry } = useEmployees(userId);
-  const { logs: tempLogs, loading: tempLoading, error: tempError, retry: tempRetry } = useTemperatureLogs(userId);
-  const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError, retry: cleanRetry } = useCleaningPlan(userId);
-  const { equipments, loading: equipLoading, error: equipError, retry: equipRetry } = useEquipments(userId);
+  const { employees, loading: empLoading } = useEmployees(userId);
+  const { logs: tempLogs, loading: tempLoading, error: tempError } = useTemperatureLogs(userId);
+  const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError } = useCleaningPlan(userId);
+  const { equipments, loading: equipLoading, error: equipError } = useEquipments(userId);
   const { entries, loading: entriesLoading } = useTimeEntries(userId);
   const { memos, loading: memosLoading } = useMemos(userId);
 
