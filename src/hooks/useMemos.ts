@@ -15,7 +15,7 @@ export function useMemos(userId: string) {
   const fetchMemos = useCallback(async () => {
     const { data, error } = await supabase
       .from("memos")
-      .select("*")
+      .select("id, content, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) {
