@@ -1,0 +1,3 @@
+ALTER TABLE public.employees
+  ADD COLUMN IF NOT EXISTS has_nfc BOOLEAN
+  GENERATED ALWAYS AS (nfc_badge_id IS NOT NULL) STORED;

@@ -148,6 +148,7 @@ export type Database = {
         Row: {
           contract_hours: number | null
           created_at: string
+          has_nfc: boolean | null
           has_pin: boolean | null
           id: string
           is_manager: boolean
@@ -161,6 +162,7 @@ export type Database = {
         Insert: {
           contract_hours?: number | null
           created_at?: string
+          has_nfc?: boolean | null
           has_pin?: boolean | null
           id?: string
           is_manager?: boolean
@@ -174,6 +176,7 @@ export type Database = {
         Update: {
           contract_hours?: number | null
           created_at?: string
+          has_nfc?: boolean | null
           has_pin?: boolean | null
           id?: string
           is_manager?: boolean
