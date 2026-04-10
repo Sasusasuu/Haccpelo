@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Building2, Lock } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { hashPinRemote } from "@/lib/pinUtils";
-import { supabase } from "@/integrations/supabase/client";
 import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 
 interface OnboardingFormProps {
@@ -51,19 +50,14 @@ export default function OnboardingForm({ userId, onComplete }: OnboardingFormPro
       // Hash the manager PIN
       const pinHash = await hashPinRemote(pin);
 
-      // Save PIN hash to settings
-      await supabase
-        .from("settings")
-        .update({ manager_pin_hash: pinHash })
-        .eq("user_id", userId);
-
       await onComplete({
         ...form,
         establishment_name: form.establishment_name.trim(),
         siret: form.siret.replace(/\s/g, ""),
         manager_name: form.manager_name.trim(),
         onboarding_completed: true,
-      });
+        manager_pin_hash: pinHash,
+      } as any);
     } finally {
       setSaving(false);
     }
