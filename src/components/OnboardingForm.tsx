@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Building2, Lock } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { hashPinRemote } from "@/lib/pinUtils";
-import { supabase } from "@/integrations/supabase/client";
+import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 
 interface OnboardingFormProps {
