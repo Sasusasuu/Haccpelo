@@ -94,7 +94,12 @@ function getServiceClient() {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS } });
+  }
+
+  const corsHeaders = getCorsHeaders(req);
+  if (!corsHeaders["Access-Control-Allow-Origin"]) return forbiddenResponse();
 
   try {
     const body = await req.json();
