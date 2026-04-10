@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts, Product } from "@/hooks/useProducts";
 import { useProductCatalog } from "@/hooks/useProductCatalog";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,20 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Pencil, Trash2, Tag, Printer, Camera, Sparkles, Info } from "lucide-react";
 import { CATEGORIES, statusOf, fmtDate, todayStr, makeDefaultForm } from "@/lib/constants";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+
+interface ScanResult {
+  nom?: string;
+  categorie?: string;
+  fab?: string;
+  dlc?: string;
+}
+
+interface AISuggestion {
+  dlc?: string;
+  categorie?: string;
+  explication?: string;
+  error?: boolean;
+}
 
 interface DLCModuleProps {
   userId: string;
@@ -30,16 +44,16 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [view, setView] = useState<"liste" | "ajouter" | "etiquette">("liste");
-  const [etiquette, setEtiquette] = useState<any>(null);
+  const [etiquette, setEtiquette] = useState<Product | null>(null);
   const [filtre, setFiltre] = useState("tous");
   const [search, setSearch] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<any>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
   const [showNormes, setShowNormes] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
@@ -57,16 +71,16 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
   };
 
   const filtered = useMemo(() =>
-    produits.filter((p: any) => {
+    produits.filter((p) => {
       const st = statusOf(p.dlc);
       const matchF = filtre === "tous" || (filtre === "alerte" && (st === "expire" || st === "urgent")) || (filtre === "ok" && st === "ok");
       const matchS = p.nom.toLowerCase().includes(search.toLowerCase()) || p.categorie.toLowerCase().includes(search.toLowerCase());
       return matchF && matchS;
-    }).sort((a: any, b: any) => (a.dlc || "").localeCompare(b.dlc || ""))
+    }).sort((a, b) => (a.dlc || "").localeCompare(b.dlc || ""))
   , [produits, filtre, search]);
 
   const nbAlerte = useMemo(() =>
-    produits.filter((p: any) => { const s = statusOf(p.dlc); return s === "expire" || s === "urgent"; }).length
+    produits.filter((p) => { const s = statusOf(p.dlc); return s === "expire" || s === "urgent"; }).length
   , [produits]);
 
   if (loading) {
@@ -121,7 +135,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
 
   const applyScan = () => {
     if (!scanResult) return;
-    const updates: any = {};
+    const updates: Partial<ReturnType<typeof makeDefaultForm>> = {};
     if (scanResult.nom) updates.nom = scanResult.nom;
     if (scanResult.categorie) updates.categorie = scanResult.categorie;
     if (scanResult.fab) updates.fab = scanResult.fab;
@@ -149,7 +163,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
 
   const applySuggestion = () => {
     if (aiSuggestion?.dlc) {
-      const updates: any = { dlc: aiSuggestion.dlc };
+      const updates: Partial<ReturnType<typeof makeDefaultForm>> = { dlc: aiSuggestion.dlc };
       if (aiSuggestion.categorie) updates.categorie = aiSuggestion.categorie;
       setForm({ ...form, ...updates });
       setAiSuggestion(null);
@@ -336,7 +350,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
               {aiSuggestion && !aiSuggestion.error && (
                 <div className="mt-2 p-2 bg-card rounded border">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">DLC suggérée : {fmtDate(aiSuggestion.dlc)}</span>
+                    <span className="text-sm font-semibold">DLC suggérée : {fmtDate(aiSuggestion.dlc ?? null)}</span>
                     <Button size="sm" onClick={applySuggestion} className="bg-green-600 hover:bg-green-700 text-xs">Appliquer</Button>
                   </div>
                   {aiSuggestion.explication && <p className="text-xs text-muted-foreground mt-1">{aiSuggestion.explication}</p>}
@@ -424,7 +438,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p: any) => (
+              {filtered.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="p-2">
                     {p.photo_url ? (
@@ -473,6 +487,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Annuler</Button>
             <Button variant="destructive" onClick={async () => {
+              if (!confirmDelete) return;
               const product = confirmDelete;
               setConfirmDelete(null);
               await deleteProduct(product.id);
