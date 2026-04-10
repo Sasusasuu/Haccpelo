@@ -148,6 +148,7 @@ export type Database = {
         Row: {
           contract_hours: number | null
           created_at: string
+          has_pin: boolean | null
           id: string
           is_manager: boolean
           meal_type: string | null
@@ -160,6 +161,7 @@ export type Database = {
         Insert: {
           contract_hours?: number | null
           created_at?: string
+          has_pin?: boolean | null
           id?: string
           is_manager?: boolean
           meal_type?: string | null
@@ -172,6 +174,7 @@ export type Database = {
         Update: {
           contract_hours?: number | null
           created_at?: string
+          has_pin?: boolean | null
           id?: string
           is_manager?: boolean
           meal_type?: string | null
@@ -350,6 +353,7 @@ export type Database = {
           created_at: string
           email: string | null
           establishment_name: string
+          has_manager_pin: boolean | null
           id: string
           legal_documents_version: string | null
           manager_name: string | null
@@ -372,6 +376,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           establishment_name?: string
+          has_manager_pin?: boolean | null
           id?: string
           legal_documents_version?: string | null
           manager_name?: string | null
@@ -394,6 +399,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           establishment_name?: string
+          has_manager_pin?: boolean | null
           id?: string
           legal_documents_version?: string | null
           manager_name?: string | null

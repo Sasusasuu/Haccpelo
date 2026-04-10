@@ -1,0 +1,8 @@
+
+ALTER TABLE public.employees
+  ADD COLUMN IF NOT EXISTS has_pin BOOLEAN
+  GENERATED ALWAYS AS (pin_hash IS NOT NULL) STORED;
+
+ALTER TABLE public.settings
+  ADD COLUMN IF NOT EXISTS has_manager_pin BOOLEAN
+  GENERATED ALWAYS AS (manager_pin_hash IS NOT NULL) STORED;
