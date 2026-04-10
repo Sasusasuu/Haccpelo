@@ -103,7 +103,7 @@ async function logAudit(
   }
 }
 
-
+serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   const originAllowed = !!corsHeaders["Access-Control-Allow-Origin"];
 
