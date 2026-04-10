@@ -28,8 +28,8 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
   const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog, exportCSV } = useAuditLog(userId);
-  const { establishmentName, updateName: updateEstablishmentName } = useEstablishmentName(userId);
-  const [editEstabName, setEditEstabName] = useState<string | null>(null);
+  const { profile, updateProfile } = useEstablishmentName(userId);
+  const [editEstab, setEditEstab] = useState<Record<string, string> | null>(null);
 
   const [settingsUnlocked, setSettingsUnlocked] = useState(false);
   const [settingsPin, setSettingsPin] = useState("");
