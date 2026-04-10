@@ -19,8 +19,27 @@ interface DLCModuleProps {
 }
 
 export default function DLCModule({ userId }: DLCModuleProps) {
-  const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
+  const { produits, loading, error, addProduct, updateProduct, deleteProduct, uploadPhoto, retry } = useProducts(userId);
   const { log: auditLog } = useAuditLog(userId);
+
+  if (loading) {
+    return (
+      <div className="space-y-4 p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center space-y-3">
+          <p className="text-destructive font-medium">{error}</p>
+          <Button variant="outline" onClick={retry}>Réessayer</Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
