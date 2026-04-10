@@ -135,6 +135,7 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
           return;
         }
         const emp = employees.find(e => e.id === result.employee_id);
+        if (!emp) return;
 
         const { isIn, openEntry } = getEmployeeStatus(emp.id);
         const now = new Date();
@@ -163,14 +164,9 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
 
   async function assignBadge() {
     if (!nfcAssignModal || !nfcAssignEmpId || !nfcAssignPin) return;
-    // Verify manager PIN first
+    // Verify manager PIN server-side
     const matchedId = await identifyByPinRemote(userId, nfcAssignPin, true);
     if (!matchedId) {
-      setNfcAssignPinError(true);
-      setNfcAssignPin("");
-      setTimeout(() => setNfcAssignPinError(false), 1500);
-      return;
-    }
       setNfcAssignPinError(true);
       setNfcAssignPin("");
       setTimeout(() => setNfcAssignPinError(false), 1500);
@@ -292,12 +288,8 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
                   onChange={e => setHistoryPin(e.target.value)}
                   onKeyDown={async e => {
                     if (e.key === "Enter") {
-                      const managers = employees.filter(emp => emp.is_manager && emp.pin_hash);
-                      let ok = false;
-                      for (const m of managers) {
-                        if (await verifyEmployeePin(m, historyPin)) { ok = true; break; }
-                      }
-                      if (ok) { setHistoryUnlocked(true); setHistoryPin(""); setHistoryPinError(false); }
+                      const matchedId = await identifyByPinRemote(userId, historyPin, true);
+                      if (matchedId) { setHistoryUnlocked(true); setHistoryPin(""); setHistoryPinError(false); }
                       else { setHistoryPinError(true); setHistoryPin(""); setTimeout(() => setHistoryPinError(false), 1500); }
                     }
                   }}
@@ -305,12 +297,8 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
                   className={`text-center tracking-[6px] ${historyPinError ? "border-destructive bg-destructive/10" : ""}`}
                 />
                 <Button onClick={async () => {
-                  const managers = employees.filter(emp => emp.is_manager && emp.pin_hash);
-                  let ok = false;
-                  for (const m of managers) {
-                    if (await verifyEmployeePin(m, historyPin)) { ok = true; break; }
-                  }
-                  if (ok) { setHistoryUnlocked(true); setHistoryPin(""); setHistoryPinError(false); }
+                  const matchedId = await identifyByPinRemote(userId, historyPin, true);
+                  if (matchedId) { setHistoryUnlocked(true); setHistoryPin(""); setHistoryPinError(false); }
                   else { setHistoryPinError(true); setHistoryPin(""); setTimeout(() => setHistoryPinError(false), 1500); }
                 }}>Accéder</Button>
               </div>
@@ -373,7 +361,7 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
           <Select value={nfcAssignEmpId} onValueChange={setNfcAssignEmpId}>
             <SelectTrigger><SelectValue placeholder="Choisir un employé" /></SelectTrigger>
             <SelectContent>
-              {employees.filter(e => !e.nfc_badge_id).map(emp => (
+              {employees.filter(e => !e.has_nfc).map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
               ))}
             </SelectContent>
