@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   StickyNote,
   FileText,
+  CreditCard,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -102,6 +103,21 @@ export function AppSidebar({ onSignOut }: AppSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        {/* Abonnement */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/subscription" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-semibold">
+                    <CreditCard className="h-4 w-4" />
+                    {!collapsed && <span>Abonnement</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
