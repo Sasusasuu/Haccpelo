@@ -6,12 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Building2 } from "lucide-react";
 import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 
+import LogoutButton from "@/components/LogoutButton";
+
 interface OnboardingFormProps {
   userId: string;
   onComplete: (data: Partial<EstablishmentProfile>) => Promise<void>;
+  onSignOut: () => void;
 }
 
-export default function OnboardingForm({ userId, onComplete }: OnboardingFormProps) {
+export default function OnboardingForm({ userId, onComplete, onSignOut }: OnboardingFormProps) {
   const [form, setForm] = useState({
     establishment_name: "",
     siret: "",
