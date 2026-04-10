@@ -74,22 +74,6 @@ const plans: Plan[] = [
       { label: "Cupidatat non proident", included: true },
     ],
   },
-  {
-    key: "enterprise",
-    title: "Sur Mesure",
-    price: "À venir...",
-    priceLabel: "",
-    description: "Multisites, intégration ERP, support dédié...",
-    recommended: false,
-    disabled: true,
-    features: [
-      { label: "Lorem ipsum dolor sit amet", included: true },
-      { label: "Consectetur adipiscing elit", included: true },
-      { label: "Sed do eiusmod tempor", included: true },
-      { label: "Ut enim ad minim veniam", included: true },
-      { label: "Quis nostrud exercitation", included: true },
-    ],
-  },
 ];
 
 interface SubscriptionPageProps {
