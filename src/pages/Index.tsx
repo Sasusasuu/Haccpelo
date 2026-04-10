@@ -2,10 +2,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/components/LoginPage";
 import OnboardingForm from "@/components/OnboardingForm";
-// import SetupPinPrompt from "@/components/SetupPinPrompt";
 import LegalOnboarding from "@/components/LegalOnboarding";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useEstablishmentName } from "@/hooks/useEstablishmentName";
@@ -34,8 +33,26 @@ function ModuleFallback() {
 
 function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const { equipments, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
-  const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError, addTask: addCleaningTask, deleteTask: deleteCleaningTask, logDone: logCleaningDone, deleteLog: deleteCleaningLog, retry: cleanRetry } = useCleaningPlan(userId);
+  const {
+    tasks: cleaningTasks,
+    logs: cleaningLogs,
+    loading: cleanLoading,
+    error: cleanError,
+    addTask: addCleaningTask,
+    deleteTask: deleteCleaningTask,
+    logDone: logCleaningDone,
+    deleteLog: deleteCleaningLog,
+    retry: cleanRetry,
+  } = useCleaningPlan(userId);
+  const {
+    establishmentName,
+    profile,
+    updateProfile,
+    loading: profileLoading,
+    refetch: refetchProfile,
+  } = useEstablishmentName(userId);
   const navigate = useNavigate();
+  const [legalCompleted, setLegalCompleted] = useState(false);
 
   if (profileLoading) {
     return (
@@ -56,19 +73,15 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     );
   }
 
-  // PIN check disabled for now
-  // if (!profile.has_manager_pin) {
-  //   return <SetupPinPrompt userId={userId} onComplete={() => refetchProfile()} />;
-  // }
-
-  const needsLegal = !profile.cgu_accepted_at || !profile.cgv_accepted_at || !profile.privacy_policy_accepted_at;
+  const needsLegal = !legalCompleted && (!profile.cgu_accepted_at || !profile.cgv_accepted_at || !profile.privacy_policy_accepted_at);
   if (needsLegal) {
     return (
       <LegalOnboarding
         userId={userId}
         onComplete={async () => {
+          setLegalCompleted(true);
           await refetchProfile();
-          navigate("/");
+          navigate("/", { replace: true });
         }}
       />
     );
