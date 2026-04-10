@@ -11,12 +11,12 @@ const ProductCatalogSection = lazy(() => import("./ProductCatalogSection"));
 
 interface HACCPParametresProps {
   userId: string;
-  equipmentsList: any[];
-  addEquipment: (name: string, type: string) => Promise<void>;
-  updateEquipment: (id: string, name: string, type: string) => Promise<void>;
+  equipmentsList: Equipment[];
+  addEquipment: (name: string, type: "frigo" | "congelateur") => Promise<void>;
+  updateEquipment: (id: string, name: string, type: "frigo" | "congelateur") => Promise<void>;
   deleteEquipment: (id: string) => Promise<void>;
-  cleaningTasks: any[];
-  addCleaningTask: (task: any) => Promise<void>;
+  cleaningTasks: CleaningTask[];
+  addCleaningTask: (task: Omit<CleaningTask, "id">) => Promise<void>;
   deleteCleaningTask: (id: string) => Promise<void>;
 }
 

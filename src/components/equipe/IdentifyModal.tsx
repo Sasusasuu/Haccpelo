@@ -94,19 +94,22 @@ export default function IdentifyModal({ open, onClose, employees, userId, manage
       const reader = new NDEFReader!();
       await reader.scan();
       toast.info("Approchez votre badge NFC…");
-      reader.addEventListener("reading", (async (event: NDEFReadingEvent) => {
-        const badgeId = event.serialNumber || "";
-        const result = await matchNfcRemote(userId, badgeId, managersOnly);
-        if (result) {
-          const emp = employees.find(e => e.id === result.employee_id);
-          if (emp) {
-            onIdentified(emp);
+      reader.addEventListener("reading", ((event: Event) => {
+        const nfcEvent = event as NDEFReadingEvent;
+        const badgeId = nfcEvent.serialNumber || "";
+        (async () => {
+          const result = await matchNfcRemote(userId, badgeId, managersOnly);
+          if (result) {
+            const emp = employees.find(e => e.id === result.employee_id);
+            if (emp) {
+              onIdentified(emp);
+            } else {
+              toast.error("Badge non reconnu" + (managersOnly ? " ou pas manager" : ""));
+            }
           } else {
             toast.error("Badge non reconnu" + (managersOnly ? " ou pas manager" : ""));
           }
-        } else {
-          toast.error("Badge non reconnu" + (managersOnly ? " ou pas manager" : ""));
-        }
+        })();
       }) as EventListener);
     } catch {
       toast.error("Impossible d'activer le NFC.");

@@ -350,7 +350,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
               {aiSuggestion && !aiSuggestion.error && (
                 <div className="mt-2 p-2 bg-card rounded border">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">DLC suggérée : {fmtDate(aiSuggestion.dlc)}</span>
+                    <span className="text-sm font-semibold">DLC suggérée : {fmtDate(aiSuggestion.dlc ?? null)}</span>
                     <Button size="sm" onClick={applySuggestion} className="bg-green-600 hover:bg-green-700 text-xs">Appliquer</Button>
                   </div>
                   {aiSuggestion.explication && <p className="text-xs text-muted-foreground mt-1">{aiSuggestion.explication}</p>}
@@ -487,6 +487,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Annuler</Button>
             <Button variant="destructive" onClick={async () => {
+              if (!confirmDelete) return;
               const product = confirmDelete;
               setConfirmDelete(null);
               await deleteProduct(product.id);
