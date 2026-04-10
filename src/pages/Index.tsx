@@ -3,8 +3,8 @@ import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/components/LoginPage";
 import OnboardingForm from "@/components/OnboardingForm";
 import LegalOnboarding from "@/components/LegalOnboarding";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { lazy, Suspense, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useEstablishmentName } from "@/hooks/useEstablishmentName";
@@ -51,8 +51,6 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     loading: profileLoading,
     refetch: refetchProfile,
   } = useEstablishmentName(userId);
-  const navigate = useNavigate();
-  const [legalCompleted, setLegalCompleted] = useState(false);
 
   if (profileLoading) {
     return (
@@ -73,15 +71,13 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     );
   }
 
-  const needsLegal = !legalCompleted && (!profile.cgu_accepted_at || !profile.cgv_accepted_at || !profile.privacy_policy_accepted_at);
+  const needsLegal = !profile.cgu_accepted_at || !profile.cgv_accepted_at || !profile.privacy_policy_accepted_at;
   if (needsLegal) {
     return (
       <LegalOnboarding
         userId={userId}
         onComplete={async () => {
-          setLegalCompleted(true);
           await refetchProfile();
-          navigate("/", { replace: true });
         }}
       />
     );
