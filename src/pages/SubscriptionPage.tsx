@@ -18,6 +18,18 @@ interface Plan {
   description: string;
   recommended: boolean;
   disabled: boolean;
+  monthlyNumeric?: number;
+  features: Feature[];
+}
+
+interface Plan {
+  key: string;
+  title: string;
+  price: string;
+  priceLabel: string;
+  description: string;
+  recommended: boolean;
+  disabled: boolean;
   features: Feature[];
 }
 
