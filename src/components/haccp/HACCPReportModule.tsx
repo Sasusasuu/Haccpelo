@@ -364,6 +364,38 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
 
   if (loading) return <CardSkeleton count={3} />;
 
+  if (!identifiedEmployee) {
+    return (
+      <>
+        <Card className="max-w-md mx-auto mt-8">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lock className="h-4 w-4" /> Identification requise
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              L'accès aux rapports HACCP nécessite une identification manager.
+            </p>
+            <Button onClick={() => setShowIdentify(true)}>
+              <Lock className="h-4 w-4 mr-2" />S'identifier
+            </Button>
+          </CardContent>
+        </Card>
+        <IdentifyModal
+          open={showIdentify}
+          onClose={() => setShowIdentify(false)}
+          employees={employees}
+          managersOnly
+          onIdentified={(emp) => { startSession(emp); setShowIdentify(false); }}
+          title="Identification manager"
+          subtitle="Seuls les managers peuvent accéder aux rapports HACCP."
+          verifyManagerPin={verifyPin}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
