@@ -20,6 +20,7 @@ import autoTable from "jspdf-autotable";
 
 interface HACCPReportModuleProps {
   userId: string;
+  establishmentName?: string;
 }
 
 const MONTH_NAMES = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
