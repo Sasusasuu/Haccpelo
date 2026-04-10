@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { SprayCan, CheckCircle2 } from "lucide-react";
+import { SprayCan, CheckCircle2, User } from "lucide-react";
 import { todayStr, fmtDate, FREQUENCIES } from "@/lib/constants";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { ListSkeleton } from "@/components/ui/loading-skeletons";
@@ -23,9 +22,8 @@ interface CleaningModuleProps {
 
 export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningLogs: logs, logCleaningDone: logDone, loading, error, onRetry }: CleaningModuleProps) {
   const [filterFreq, setFilterFreq] = useState("tous");
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [pendingTask, setPendingTask] = useState<{ id: string; task_name: string; zone: string } | null>(null);
-  const [doneByName, setDoneByName] = useState("");
+  const [currentName, setCurrentName] = useState("");
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const today = todayStr();
 
   const isTaskDoneToday = (taskId: string) => logs.some(l => l.task_id === taskId && l.done_date === today);
@@ -44,18 +42,11 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
 
   const doneToday = tasks.filter(t => isTaskDoneToday(t.id)).length;
 
-  const handleValidate = (task: { id: string; task_name: string; zone: string }) => {
-    setPendingTask(task);
-    setDoneByName("");
-    setShowNameModal(true);
-  };
-
-  const confirmValidation = async () => {
-    if (!pendingTask || !doneByName.trim()) return;
-    await logDone(pendingTask.id, doneByName.trim());
-    setShowNameModal(false);
-    setPendingTask(null);
-    setDoneByName("");
+  const handleCheckTask = async (taskId: string) => {
+    if (!currentName.trim() || busyTaskId) return;
+    setBusyTaskId(taskId);
+    await logDone(taskId, currentName.trim());
+    setBusyTaskId(null);
   };
 
   if (error) return <ErrorAlert message={error} onRetry={onRetry} />;
@@ -74,6 +65,17 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
             </Badge>
           )}
         </div>
+      </div>
+
+      {/* Name input - stays at the top, type once then check tasks */}
+      <div className="flex items-center gap-2 p-3 rounded-lg border bg-card">
+        <User className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Input
+          value={currentName}
+          onChange={e => setCurrentName(e.target.value)}
+          placeholder="Votre prénom"
+          className="h-8 text-sm"
+        />
       </div>
 
       <Tabs value={filterFreq} onValueChange={setFilterFreq}>
@@ -95,14 +97,16 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
               const done = isTaskDoneToday(task.id);
               const last = lastDone(task.id);
               const freq = FREQUENCIES.find(f => f.value === task.frequency);
+              const isBusy = busyTaskId === task.id;
               return (
                 <div key={task.id} className={`flex items-center gap-3 p-2.5 rounded-lg ${done ? "bg-green-50 dark:bg-green-950/20" : "bg-muted/50"}`}>
                   <Button
                     variant={done ? "default" : "outline"}
                     size="icon"
                     className={`h-7 w-7 shrink-0 ${done ? "bg-green-600 hover:bg-green-700" : ""}`}
-                    disabled={done}
-                    onClick={() => !done && handleValidate(task)}
+                    disabled={done || !currentName.trim() || isBusy}
+                    onClick={() => handleCheckTask(task.id)}
+                    title={!currentName.trim() ? "Entrez votre prénom d'abord" : ""}
                   >
                     {done && <CheckCircle2 className="h-4 w-4" />}
                   </Button>
@@ -120,26 +124,6 @@ export default function CleaningModule({ userId, cleaningTasks: tasks, cleaningL
           </div>
         ))
       )}
-
-      <Dialog open={showNameModal} onOpenChange={() => { setShowNameModal(false); setPendingTask(null); }}>
-        <DialogContent className="max-w-sm w-[90vw]">
-          <DialogHeader>
-            <DialogTitle>Qui valide ?</DialogTitle>
-            {pendingTask && <p className="text-sm text-muted-foreground">{pendingTask.task_name} — {pendingTask.zone}</p>}
-          </DialogHeader>
-          <Input
-            value={doneByName}
-            onChange={e => setDoneByName(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && confirmValidation()}
-            placeholder="Votre prénom"
-            autoFocus
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowNameModal(false); setPendingTask(null); }}>Annuler</Button>
-            <Button onClick={confirmValidation} disabled={!doneByName.trim()}>Valider</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
