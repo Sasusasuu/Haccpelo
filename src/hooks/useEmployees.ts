@@ -75,7 +75,10 @@ export function useEmployees(userId: string | undefined) {
     if (!userId) return;
     setError(null);
     try {
-      const dbUpdates: Record<string, any> = {};
+      const dbUpdates: {
+        name?: string; contract_hours?: number | null; meal_type?: string | null;
+        is_manager?: boolean; pin_hash?: string | null; nfc_badge_id?: string | null;
+      } = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.contract_hours !== undefined) dbUpdates.contract_hours = updates.contract_hours;
       if (updates.meal_type !== undefined) dbUpdates.meal_type = updates.meal_type;
