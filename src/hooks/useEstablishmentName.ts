@@ -13,6 +13,7 @@ export interface EstablishmentProfile {
   manager_name: string;
   onboarding_completed: boolean;
   has_manager_pin: boolean;
+  manager_pin_configured: boolean;
   cgu_accepted_at: string | null;
   cgv_accepted_at: string | null;
   privacy_policy_accepted_at: string | null;
@@ -31,6 +32,7 @@ const DEFAULT_PROFILE: EstablishmentProfile = {
   manager_name: "",
   onboarding_completed: false,
   has_manager_pin: false,
+  manager_pin_configured: false,
   cgu_accepted_at: null,
   cgv_accepted_at: null,
   privacy_policy_accepted_at: null,
