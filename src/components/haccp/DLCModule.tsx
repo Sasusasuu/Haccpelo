@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
+import { useProductCatalog } from "@/hooks/useProductCatalog";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,11 @@ interface DLCModuleProps {
 
 export default function DLCModule({ userId, establishmentName = "Mon établissement" }: DLCModuleProps) {
   const { produits, loading, error, addProduct, updateProduct, deleteProduct, uploadPhoto, retry } = useProducts(userId);
+  const { findMatches: findCatalogMatches } = useProductCatalog(userId);
   const { log: auditLog } = useAuditLog(userId);
 
+  const [catalogSuggestions, setCatalogSuggestions] = useState<{ product_name: string; default_dlc_days: number; category: string }[]>([]);
+  const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [view, setView] = useState<"liste" | "ajouter" | "etiquette">("liste");
@@ -192,9 +196,55 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
+            <div className="sm:col-span-2 space-y-1.5 relative">
               <Label>Nom du produit *</Label>
-              <Input value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} placeholder="Ex: Filet de bœuf" />
+              <Input
+                value={form.nom}
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm({ ...form, nom: val });
+                  const matches = findCatalogMatches(val);
+                  setCatalogSuggestions(matches);
+                  setShowCatalogDropdown(matches.length > 0);
+                }}
+                onFocus={() => {
+                  const matches = findCatalogMatches(form.nom);
+                  if (matches.length > 0) setShowCatalogDropdown(true);
+                }}
+                onBlur={() => setTimeout(() => setShowCatalogDropdown(false), 200)}
+                placeholder="Ex: Filet de bœuf"
+                autoComplete="off"
+              />
+              {showCatalogDropdown && catalogSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {catalogSuggestions.map(s => {
+                    const dlcDate = new Date();
+                    dlcDate.setDate(dlcDate.getDate() + s.default_dlc_days);
+                    const dlcStr = dlcDate.toISOString().split("T")[0];
+                    return (
+                      <button
+                        key={s.product_name}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex justify-between items-center"
+                        onMouseDown={e => {
+                          e.preventDefault();
+                          setForm(prev => ({
+                            ...prev,
+                            nom: s.product_name,
+                            categorie: s.category,
+                            dlc: dlcStr,
+                          }));
+                          setShowCatalogDropdown(false);
+                          setCatalogSuggestions([]);
+                        }}
+                      >
+                        <span className="font-medium">{s.product_name}</span>
+                        <span className="text-xs text-muted-foreground">{s.category} · {s.default_dlc_days}j</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Catégorie</Label>

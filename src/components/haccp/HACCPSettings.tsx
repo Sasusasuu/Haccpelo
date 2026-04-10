@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Plus, Pencil, Trash2, X, Check } from "lucide-react";
+
+const ProductCatalogSection = lazy(() => import("./ProductCatalogSection"));
 
 interface HACCPParametresProps {
   userId: string;
@@ -138,6 +140,11 @@ export default function HACCPParametres({ userId, equipmentsList, addEquipment, 
           </div>
         </CardContent>
       </Card>
+
+      {/* Catalogue produits */}
+      <Suspense fallback={<p className="text-sm text-muted-foreground p-2">Chargement...</p>}>
+        <ProductCatalogSection userId={userId} />
+      </Suspense>
 
       <Button variant="outline" onClick={() => setUnlocked(false)}>
         <Lock className="h-4 w-4 mr-2" />Verrouiller les paramètres
