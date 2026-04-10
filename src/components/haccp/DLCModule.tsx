@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts, Product } from "@/hooks/useProducts";
 import { useProductCatalog } from "@/hooks/useProductCatalog";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,20 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Pencil, Trash2, Tag, Printer, Camera, Sparkles, Info } from "lucide-react";
 import { CATEGORIES, statusOf, fmtDate, todayStr, makeDefaultForm } from "@/lib/constants";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+
+interface ScanResult {
+  nom?: string;
+  categorie?: string;
+  fab?: string;
+  dlc?: string;
+}
+
+interface AISuggestion {
+  dlc?: string;
+  categorie?: string;
+  explication?: string;
+  error?: boolean;
+}
 
 interface DLCModuleProps {
   userId: string;
@@ -30,16 +44,16 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [view, setView] = useState<"liste" | "ajouter" | "etiquette">("liste");
-  const [etiquette, setEtiquette] = useState<any>(null);
+  const [etiquette, setEtiquette] = useState<Product | null>(null);
   const [filtre, setFiltre] = useState("tous");
   const [search, setSearch] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<any>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
   const [showNormes, setShowNormes] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<any>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
