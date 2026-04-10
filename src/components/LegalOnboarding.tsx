@@ -14,25 +14,34 @@ interface LegalOnboardingProps {
 
 function useScrollDetection() {
   const [hasRead, setHasRead] = useState(false);
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    // If content doesn't overflow, mark as read immediately
+    if (node.scrollHeight <= node.clientHeight + 30) {
+      setHasRead(true);
+    }
+  }, []);
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    // Consider "read" when scrolled within 30px of bottom
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 30) {
       setHasRead(true);
     }
   }, []);
-  return { hasRead, handleScroll };
+  return { hasRead, handleScroll, containerRef };
 }
 
 function LegalTextPanel({
   text,
   onScroll,
+  containerRef,
 }: {
   text: string;
   onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
+  containerRef: (node: HTMLDivElement | null) => void;
 }) {
   return (
     <div
+      ref={containerRef}
       className="h-[50vh] overflow-y-auto border rounded-md p-4 bg-muted/30 text-sm leading-relaxed whitespace-pre-line"
       onScroll={onScroll}
     >
