@@ -135,7 +135,7 @@ export default function SubscriptionPage({ subscriptionStatus, userId }: Subscri
         </AlertDescription>
       </Alert>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {plans.map((plan) => {
           const btn = getButtonConfig(plan.key, status);
           const isCurrent = plan.key === status;
