@@ -168,6 +168,12 @@ export default function SubscriptionPage({ subscriptionStatus, userId }: Subscri
                     <span className="text-muted-foreground text-sm">{plan.priceLabel}</span>
                   )}
                 </div>
+                {plan.monthlyNumeric && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <span className="font-semibold text-primary">-10%</span> si payé annuellement.{" "}
+                    Soit <span className="font-semibold">{Math.round(plan.monthlyNumeric * 0.9 * 12)}€</span>/an au lieu de <span className="line-through">{plan.monthlyNumeric * 12}€</span>
+                  </p>
+                )}
                 <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
 
