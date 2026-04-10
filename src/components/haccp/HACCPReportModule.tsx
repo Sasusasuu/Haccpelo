@@ -410,6 +410,7 @@ export default function HACCPReportModule({ userId, establishmentName = "Mon ét
           open={showIdentify}
           onClose={() => setShowIdentify(false)}
           employees={employees}
+          userId={userId}
           managersOnly
           onIdentified={(emp) => { startSession(emp); setShowIdentify(false); }}
           title="Identification manager"

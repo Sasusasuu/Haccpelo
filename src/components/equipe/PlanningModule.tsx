@@ -334,6 +334,7 @@ export default function PlanningModule({ userId }: PlanningModuleProps) {
         open={showIdentifyModal}
         onClose={() => { setShowIdentifyModal(false); setPendingAction(null); }}
         employees={employees}
+        userId={userId}
         managersOnly={true}
         onIdentified={handleIdentified}
         verifyManagerPin={verifyPin}
