@@ -40,7 +40,7 @@ export function useCustomRoles(userId: string | undefined) {
             const rows = DEFAULT_ROLES.map(r => ({ user_id: userId, label: r.label, color: r.color }));
             const { data: seeded, error: seedErr } = await supabase
               .from("custom_roles")
-              .upsert(rows, { onConflict: "user_id,label" })
+              .insert(rows)
               .select("id, label, color");
             if (seedErr) throw seedErr;
             if (seeded) setRoles(seeded);
