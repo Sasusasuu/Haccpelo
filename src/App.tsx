@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+
 import ResetPassword from "./pages/ResetPassword.tsx";
 
 const queryClient = new QueryClient();

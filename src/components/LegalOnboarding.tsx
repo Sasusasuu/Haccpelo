@@ -1,8 +1,8 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { CGU_TEXT, CGV_TEXT, PRIVACY_TEXT, LEGAL_VERSION } from "@/constants/legalTexts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

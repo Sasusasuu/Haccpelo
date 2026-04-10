@@ -46,7 +46,7 @@ export default function HACCPReportModule({ userId, establishmentName = "Mon ét
 
   const { employees } = useEmployees(userId);
   const { verifyPin, planningSessionMinutes } = useSettings(userId);
-  const { identifiedEmployee, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
+  const { identifiedEmployee, startSession } = useIdentitySession(planningSessionMinutes);
 
   const { logs: tempLogs, loading: tempLoading } = useTemperatureLogs(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading } = useCleaningPlan(userId);
