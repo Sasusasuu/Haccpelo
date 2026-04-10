@@ -295,25 +295,53 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
         <Shield className="h-4 w-4" /> Connecté en tant que <strong>{currentManagerName}</strong>
       </div>
 
-      {/* Nom de l'établissement */}
+      {/* Fiche établissement */}
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-sm">Nom de l'établissement</CardTitle></CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              value={editEstabName !== null ? editEstabName : establishmentName}
-              onChange={e => setEditEstabName(e.target.value)}
-              onFocus={() => { if (editEstabName === null) setEditEstabName(establishmentName); }}
-              placeholder="Ex: Restaurant Le Bon Goût"
-            />
-            <Button variant="outline" onClick={async () => {
-              if (editEstabName && editEstabName.trim()) {
-                await updateEstablishmentName(editEstabName.trim());
-                await auditLog("establishment_name_changed", `Nom établissement modifié: "${editEstabName.trim()}"`, currentManagerId, currentManagerName);
-                setEditEstabName(null);
-              }
-            }}>Enregistrer</Button>
-          </div>
+        <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2">🏢 Fiche établissement</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {(() => {
+            const fields = [
+              { key: "establishment_name", label: "Nom", placeholder: "Restaurant Le Bon Goût" },
+              { key: "manager_name", label: "Responsable", placeholder: "Jean Dupont" },
+              { key: "siret", label: "SIRET", placeholder: "123 456 789 01234" },
+              { key: "email", label: "Email", placeholder: "contact@restaurant.fr" },
+              { key: "phone", label: "Téléphone", placeholder: "01 23 45 67 89" },
+              { key: "address", label: "Adresse", placeholder: "12 rue de la Paix" },
+              { key: "postal_code", label: "Code postal", placeholder: "75001" },
+              { key: "city", label: "Ville", placeholder: "Paris" },
+            ];
+            const current = editEstab || (profile as any);
+            return (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {fields.map(f => (
+                    <div key={f.key} className={f.key === "establishment_name" || f.key === "address" ? "sm:col-span-2" : ""}>
+                      <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+                      <Input
+                        value={current[f.key] || ""}
+                        onChange={e => {
+                          if (!editEstab) setEditEstab({ ...profile } as any);
+                          setEditEstab(prev => prev ? { ...prev, [f.key]: e.target.value } : null);
+                        }}
+                        placeholder={f.placeholder}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+                {editEstab && (
+                  <div className="flex gap-2 justify-end pt-1">
+                    <Button variant="outline" size="sm" onClick={() => setEditEstab(null)}>Annuler</Button>
+                    <Button size="sm" onClick={async () => {
+                      await updateProfile(editEstab as any);
+                      await auditLog("establishment_updated", "Fiche établissement modifiée", currentManagerId, currentManagerName);
+                      setEditEstab(null);
+                    }}>Enregistrer</Button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
