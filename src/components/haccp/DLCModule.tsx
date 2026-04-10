@@ -35,7 +35,7 @@ export default function DLCModule({ userId }: DLCModuleProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  }, [startSession, pendingAction]);
+  
 
   const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
@@ -402,28 +402,15 @@ export default function DLCModule({ userId }: DLCModuleProps) {
           )}
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Annuler</Button>
-            <Button variant="destructive" onClick={() => {
+            <Button variant="destructive" onClick={async () => {
               const product = confirmDelete;
               setConfirmDelete(null);
-              requireAuth(async () => {
-                await deleteProduct(product.id);
-                await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-              });
+              await deleteProduct(product.id);
+              await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, null, null);
             }}>Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Identify Modal */}
-      <IdentifyModal
-        open={showIdentify}
-        onClose={() => { setShowIdentify(false); setPendingAction(null); }}
-        employees={employees}
-        onIdentified={handleIdentified}
-        verifyManagerPin={verifyPin}
-        title="Identification requise"
-        subtitle="Entrez votre code pour gérer les produits."
-      />
     </div>
   );
 }
