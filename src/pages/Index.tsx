@@ -1,11 +1,13 @@
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import LoginPage from "@/components/LoginPage";
+import OnboardingForm from "@/components/OnboardingForm";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { useEquipments } from "@/hooks/useEquipments";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useEstablishmentName } from "@/hooks/useEstablishmentName";
+import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 import { TableSkeleton } from "@/components/ui/loading-skeletons";
 
 const Dashboard = lazy(() => import("@/components/dashboard/Dashboard"));
@@ -30,7 +32,25 @@ function ModuleFallback() {
 function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: () => void }) {
   const { equipments, addEquipment, updateEquipment, deleteEquipment } = useEquipments(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading, error: cleanError, addTask: addCleaningTask, deleteTask: deleteCleaningTask, logDone: logCleaningDone, deleteLog: deleteCleaningLog, retry: cleanRetry } = useCleaningPlan(userId);
-  const { establishmentName } = useEstablishmentName(userId);
+  const { establishmentName, profile, updateProfile, loading: profileLoading } = useEstablishmentName(userId);
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!profile.onboarding_completed) {
+    return (
+      <OnboardingForm
+        onComplete={async (data: Partial<EstablishmentProfile>) => {
+          await updateProfile(data);
+        }}
+      />
+    );
+  }
 
   return (
     <AppLayout onSignOut={onSignOut} establishmentName={establishmentName}>
@@ -41,7 +61,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
           <Route path="/haccp/temperatures" element={<TemperaturesModule userId={userId} equipmentsList={equipments} />} />
           <Route path="/haccp/nettoyage" element={<CleaningModule userId={userId} cleaningTasks={cleaningTasks} cleaningLogs={cleaningLogs} logCleaningDone={logCleaningDone} deleteCleaningLog={deleteCleaningLog} loading={cleanLoading} error={cleanError} onRetry={cleanRetry} />} />
           <Route path="/haccp/parametres" element={<HACCPSettings userId={userId} equipmentsList={equipments} addEquipment={addEquipment} updateEquipment={updateEquipment} deleteEquipment={deleteEquipment} cleaningTasks={cleaningTasks} addCleaningTask={addCleaningTask} deleteCleaningTask={deleteCleaningTask} />} />
-          <Route path="/haccp/rapport" element={<HACCPReportModule userId={userId} establishmentName={establishmentName} />} />
+          <Route path="/haccp/rapport" element={<HACCPReportModule userId={userId} establishmentName={establishmentName} profile={profile} />} />
           <Route path="/equipe/planning" element={<PlanningModule userId={userId} />} />
           <Route path="/equipe/pointeuse" element={<TimeclockModule userId={userId} />} />
           <Route path="/equipe/memos" element={<MemosModule userId={userId} />} />
