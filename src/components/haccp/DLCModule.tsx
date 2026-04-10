@@ -19,6 +19,7 @@ interface DLCModuleProps {
 }
 
 export default function DLCModule({ userId }: DLCModuleProps) {
+  const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
   const { log: auditLog } = useAuditLog(userId);
 
   const [form, setForm] = useState(makeDefaultForm);
@@ -41,11 +42,11 @@ export default function DLCModule({ userId }: DLCModuleProps) {
     if (!form.nom || !form.dlc) return;
     if (editId !== null) {
       await updateProduct(editId, form);
-      await auditLog("product_updated", `Produit modifié "${form.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
+      await auditLog("product_updated", `Produit modifié "${form.nom}"`, null, null);
       setEditId(null);
     } else {
       await addProduct(form);
-      await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
+      await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, null, null);
     }
     setForm(makeDefaultForm());
     setView("liste");
