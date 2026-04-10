@@ -42,6 +42,7 @@ const plans: Plan[] = [
     description: "L'essentiel pour gérer votre hygiène et votre équipe au quotidien.",
     recommended: false,
     disabled: false,
+    monthlyNumeric: 29,
     features: [
       { label: "Lorem ipsum dolor sit amet", included: true },
       { label: "Consectetur adipiscing elit", included: true },
