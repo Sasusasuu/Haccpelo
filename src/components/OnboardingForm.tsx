@@ -51,19 +51,14 @@ export default function OnboardingForm({ userId, onComplete }: OnboardingFormPro
       // Hash the manager PIN
       const pinHash = await hashPinRemote(pin);
 
-      // Save PIN hash to settings
-      await supabase
-        .from("settings")
-        .update({ manager_pin_hash: pinHash })
-        .eq("user_id", userId);
-
       await onComplete({
         ...form,
         establishment_name: form.establishment_name.trim(),
         siret: form.siret.replace(/\s/g, ""),
         manager_name: form.manager_name.trim(),
         onboarding_completed: true,
-      });
+        manager_pin_hash: pinHash,
+      } as any);
     } finally {
       setSaving(false);
     }
