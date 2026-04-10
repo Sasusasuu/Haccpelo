@@ -125,7 +125,7 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
           value={pin}
           onChange={e => setPin(e.target.value)}
           onKeyDown={e => e.key === "Enter" && validate()}
-          placeholder="Code PIN à 4 chiffres"
+          placeholder="Code PIN"
           className={`text-center text-xl tracking-[10px] ${error ? "border-destructive bg-destructive/10" : ""}`}
           disabled={validating}
         />
