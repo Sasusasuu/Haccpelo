@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import imageCompression from "browser-image-compression";
 
-
 export interface Product {
   id: string;
   nom: string;
@@ -56,8 +55,8 @@ export function useProducts(userId: string | undefined) {
 
   const uploadPhoto = async (file: File): Promise<string | null> => {
     if (!userId) return null;
+    setError(null);
     try {
-      // Compress image before upload
       const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
       const ext = file.name.split('.').pop() || 'jpg';
       const path = `${userId}/${crypto.randomUUID()}.${ext}`;
@@ -73,6 +72,7 @@ export function useProducts(userId: string | undefined) {
 
   const addProduct = async (product: Omit<Product, "id">) => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("products")
@@ -82,7 +82,6 @@ export function useProducts(userId: string | undefined) {
       if (dbError) throw dbError;
       if (data) {
         setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "", photo_url: data.photo_url || "" }]);
-        // Log photo to traceability history
         if (data.photo_url) {
           await supabase.from("traceability_photos").insert({
             user_id: userId,
@@ -100,6 +99,7 @@ export function useProducts(userId: string | undefined) {
 
   const updateProduct = async (id: string, product: Omit<Product, "id">) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase
         .from("products")
@@ -107,7 +107,6 @@ export function useProducts(userId: string | undefined) {
         .eq("id", id)
         .eq("user_id", userId);
       if (dbError) throw dbError;
-      // Log new photo to traceability history if photo changed
       const oldProduct = produits.find(p => p.id === id);
       if (product.photo_url && product.photo_url !== oldProduct?.photo_url) {
         await supabase.from("traceability_photos").insert({
@@ -126,6 +125,7 @@ export function useProducts(userId: string | undefined) {
 
   const deleteProduct = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase.from("products").delete().eq("id", id).eq("user_id", userId);
       if (dbError) throw dbError;

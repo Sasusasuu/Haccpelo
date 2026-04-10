@@ -75,6 +75,7 @@ export function useEmployees(userId: string | undefined) {
 
   const addEmployee = async (name: string, contractHours?: number) => {
     if (!userId) return;
+    setError(null);
     try {
       const { data, error: dbError } = await supabase
         .from("employees")
@@ -90,6 +91,7 @@ export function useEmployees(userId: string | undefined) {
 
   const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type" | "nfc_badge_id" | "pin_hash" | "is_manager">>) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase
         .from("employees")
@@ -105,6 +107,7 @@ export function useEmployees(userId: string | undefined) {
 
   const deleteEmployee = async (id: string) => {
     if (!userId) return;
+    setError(null);
     try {
       const { error: dbError } = await supabase.from("employees").delete().eq("id", id).eq("user_id", userId);
       if (dbError) throw dbError;
