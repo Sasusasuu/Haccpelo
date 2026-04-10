@@ -77,7 +77,7 @@ const plans: Plan[] = [
   {
     key: "enterprise",
     title: "Sur Mesure",
-    price: "Sur devis",
+    price: "À venir...",
     priceLabel: "",
     description: "Multisites, intégration ERP, support dédié...",
     recommended: false,
