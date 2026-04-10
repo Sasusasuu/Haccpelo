@@ -6,13 +6,15 @@ import { Lock } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { hashPinRemote } from "@/lib/pinUtils";
 import { supabase } from "@/integrations/supabase/client";
+import LogoutButton from "@/components/LogoutButton";
 
 interface SetupPinPromptProps {
   userId: string;
   onComplete: () => void;
+  onSignOut: () => void;
 }
 
-export default function SetupPinPrompt({ userId, onComplete }: SetupPinPromptProps) {
+export default function SetupPinPrompt({ userId, onComplete, onSignOut }: SetupPinPromptProps) {
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
   const [saving, setSaving] = useState(false);

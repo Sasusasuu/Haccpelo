@@ -62,7 +62,10 @@ export default function OnboardingForm({ userId, onComplete, onSignOut }: Onboar
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="w-full max-w-lg flex justify-end mb-2">
+        <LogoutButton onSignOut={onSignOut} />
+      </div>
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
