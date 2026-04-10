@@ -74,6 +74,16 @@ const plans: Plan[] = [
       { label: "Cupidatat non proident", included: true },
     ],
   },
+  {
+    key: "enterprise",
+    title: "À venir...",
+    price: "",
+    priceLabel: "",
+    description: "",
+    recommended: false,
+    disabled: true,
+    features: [],
+  },
 ];
 
 interface SubscriptionPageProps {
