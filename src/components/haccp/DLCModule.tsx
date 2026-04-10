@@ -1,10 +1,6 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
-import { useEmployees } from "@/hooks/useEmployees";
-import { useSettings } from "@/hooks/useSettings";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { useIdentitySession } from "@/hooks/useIdentitySession";
-import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Pencil, Trash2, Tag, Printer, Camera, Sparkles, Info, Shield } from "lucide-react";
-import { CATEGORIES, statusOf, fmtDate, todayStr, tomorrowStr, makeDefaultForm } from "@/lib/constants";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Search, Pencil, Trash2, Tag, Printer, Camera, Sparkles, Info } from "lucide-react";
+import { CATEGORIES, statusOf, fmtDate, todayStr, makeDefaultForm } from "@/lib/constants";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface DLCModuleProps {
   userId: string;

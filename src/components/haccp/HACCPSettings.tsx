@@ -18,11 +18,10 @@ interface HACCPParametresProps {
 }
 
 export default function HACCPParametres({ userId, equipmentsList, addEquipment, updateEquipment, deleteEquipment, cleaningTasks, addCleaningTask, deleteCleaningTask }: HACCPParametresProps) {
-  const { verifyPin, changePin } = useSettings(userId);
+  const { verifyPin } = useSettings(userId);
   const [unlocked, setUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [newPin, setNewPin] = useState("");
   const [newEquipName, setNewEquipName] = useState("");
   const [newEquipType, setNewEquipType] = useState("frigo");
   const [editEquipId, setEditEquipId] = useState<string | null>(null);
