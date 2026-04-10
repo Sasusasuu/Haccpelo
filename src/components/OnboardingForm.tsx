@@ -3,14 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2 } from "lucide-react";
+import { Building2, Lock } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { hashPinRemote } from "@/lib/pinUtils";
+import { supabase } from "@/integrations/supabase/client";
 import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 
 interface OnboardingFormProps {
+  userId: string;
   onComplete: (data: Partial<EstablishmentProfile>) => Promise<void>;
 }
 
-export default function OnboardingForm({ onComplete }: OnboardingFormProps) {
+export default function OnboardingForm({ userId, onComplete }: OnboardingFormProps) {
   const [form, setForm] = useState({
     establishment_name: "",
     siret: "",
@@ -21,6 +25,8 @@ export default function OnboardingForm({ onComplete }: OnboardingFormProps) {
     city: "",
     manager_name: "",
   });
+  const [pin, setPin] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -32,6 +38,8 @@ export default function OnboardingForm({ onComplete }: OnboardingFormProps) {
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email invalide";
     if (form.phone && !/^[\d\s+()-]{6,20}$/.test(form.phone)) e.phone = "Numéro invalide";
     if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) e.postal_code = "Code postal à 5 chiffres";
+    if (!/^\d{4}$/.test(pin)) e.pin = "Le code PIN doit contenir exactement 4 chiffres";
+    if (pin !== pinConfirm) e.pinConfirm = "Les codes PIN ne correspondent pas";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -40,6 +48,15 @@ export default function OnboardingForm({ onComplete }: OnboardingFormProps) {
     if (!validate()) return;
     setSaving(true);
     try {
+      // Hash the manager PIN
+      const pinHash = await hashPinRemote(pin);
+
+      // Save PIN hash to settings
+      await supabase
+        .from("settings")
+        .update({ manager_pin_hash: pinHash })
+        .eq("user_id", userId);
+
       await onComplete({
         ...form,
         establishment_name: form.establishment_name.trim(),
@@ -110,6 +127,44 @@ export default function OnboardingForm({ onComplete }: OnboardingFormProps) {
               <Input value={form.city} onChange={e => set("city", e.target.value)} placeholder="Paris" />
             </div>
           </div>
+
+          {/* Manager PIN Section */}
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              <Label className="text-base font-semibold">Code PIN Manager *</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ce code à 4 chiffres protégera l'accès aux paramètres, rapports et modifications sensibles.
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Code PIN</Label>
+                <InputOTP maxLength={4} value={pin} onChange={(v) => { setPin(v); if (errors.pin) setErrors(prev => { const n = { ...prev }; delete n.pin; return n; }); }}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
+                {errors.pin && <p className="text-xs text-destructive">{errors.pin}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Confirmer le code PIN</Label>
+                <InputOTP maxLength={4} value={pinConfirm} onChange={(v) => { setPinConfirm(v); if (errors.pinConfirm) setErrors(prev => { const n = { ...prev }; delete n.pinConfirm; return n; }); }}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
+                {errors.pinConfirm && <p className="text-xs text-destructive">{errors.pinConfirm}</p>}
+              </div>
+            </div>
+          </div>
+
           <Button className="w-full" onClick={handleSubmit} disabled={saving}>
             {saving ? "Enregistrement..." : "Commencer à utiliser l'application"}
           </Button>

@@ -45,6 +45,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
   if (!profile.onboarding_completed) {
     return (
       <OnboardingForm
+        userId={userId}
         onComplete={async (data: Partial<EstablishmentProfile>) => {
           await updateProfile(data);
         }}
