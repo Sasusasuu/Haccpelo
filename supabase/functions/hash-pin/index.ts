@@ -1,32 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const CORS_ALLOW_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
-
-function getAllowedOrigins(): string[] {
-  const origins: string[] = [
-    "https://id-preview--13900d90-7c22-443b-a791-caa074dd8c0a.lovable.app",
-  ];
-  const env = Deno.env.get("ALLOWED_ORIGIN");
-  if (env) origins.push(...env.split(",").map(o => o.trim()).filter(Boolean));
-  const siteUrl = Deno.env.get("SITE_URL");
-  if (siteUrl) origins.push(siteUrl.replace(/\/$/, ""));
-  return [...new Set(origins)];
-}
+const ALLOWED_ORIGINS = [
+  Deno.env.get("ALLOWED_ORIGIN") ?? "",
+  Deno.env.get("SITE_URL") ?? "",
+  "https://lovable.dev",
+  "https://id-preview--13900d90-7c22-443b-a791-caa074dd8c0a.lovable.app",
+].filter(Boolean);
 
 function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("Origin") || "";
-  const allowed = getAllowedOrigins();
-  if (allowed.includes(origin)) {
-    return { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS, "Vary": "Origin" };
-  }
-  return { "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS };
-}
-
-function forbiddenResponse() {
-  return new Response(JSON.stringify({ error: "Origin not allowed" }), {
-    status: 403, headers: { "Content-Type": "application/json" },
-  });
+  const origin = req.headers.get("origin") ?? "";
+  const isAllowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o));
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : "",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
 }
 
 const ITERATIONS = 100000;
@@ -48,7 +37,7 @@ function checkRateLimit(key: string): boolean {
   return entry.count <= RATE_LIMIT_MAX;
 }
 
-function rateLimitResponse() {
+function rateLimitResponse(corsHeaders: Record<string, string>) {
   return new Response(
     JSON.stringify({ error: "Trop de tentatives, réessayez dans 60 secondes" }),
     { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -94,12 +83,20 @@ function getServiceClient() {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const originAllowed = !!corsHeaders["Access-Control-Allow-Origin"];
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS } });
+    return originAllowed
+      ? new Response(null, { status: 204, headers: corsHeaders })
+      : new Response(null, { status: 403 });
   }
 
-  const corsHeaders = getCorsHeaders(req);
-  if (!corsHeaders["Access-Control-Allow-Origin"]) return forbiddenResponse();
+  if (!originAllowed) {
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403, headers: { "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json();
@@ -131,7 +128,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`emp:${employee_id}`)) return rateLimitResponse();
+      if (!checkRateLimit(`emp:${employee_id}`)) return rateLimitResponse(corsHeaders);
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("employees").select("pin_hash").eq("id", employee_id).single();
       if (error || !data?.pin_hash) {
@@ -164,7 +161,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`mgr:${user_id}`)) return rateLimitResponse();
+      if (!checkRateLimit(`mgr:${user_id}`)) return rateLimitResponse(corsHeaders);
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("settings").select("manager_pin_hash").eq("user_id", user_id).single();
       if (error || !data?.manager_pin_hash) {
@@ -196,7 +193,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`idpin:${user_id}`)) return rateLimitResponse();
+      if (!checkRateLimit(`idpin:${user_id}`)) return rateLimitResponse(corsHeaders);
       const supabase = getServiceClient();
       let query = supabase.from("employees").select("id, pin_hash, is_manager").eq("user_id", user_id);
       if (managers_only) query = query.eq("is_manager", true);

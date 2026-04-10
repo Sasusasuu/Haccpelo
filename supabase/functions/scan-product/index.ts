@@ -1,40 +1,37 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const CORS_ALLOW_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
-
-function getAllowedOrigins(): string[] {
-  const origins: string[] = [
-    "https://id-preview--13900d90-7c22-443b-a791-caa074dd8c0a.lovable.app",
-  ];
-  const env = Deno.env.get("ALLOWED_ORIGIN");
-  if (env) origins.push(...env.split(",").map(o => o.trim()).filter(Boolean));
-  const siteUrl = Deno.env.get("SITE_URL");
-  if (siteUrl) origins.push(siteUrl.replace(/\/$/, ""));
-  return [...new Set(origins)];
-}
+const ALLOWED_ORIGINS = [
+  Deno.env.get("ALLOWED_ORIGIN") ?? "",
+  Deno.env.get("SITE_URL") ?? "",
+  "https://lovable.dev",
+  "https://id-preview--13900d90-7c22-443b-a791-caa074dd8c0a.lovable.app",
+].filter(Boolean);
 
 function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("Origin") || "";
-  const allowed = getAllowedOrigins();
-  if (allowed.includes(origin)) {
-    return { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS, "Vary": "Origin" };
-  }
-  return { "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS };
-}
-
-function forbiddenResponse() {
-  return new Response(JSON.stringify({ error: "Origin not allowed" }), {
-    status: 403, headers: { "Content-Type": "application/json" },
-  });
+  const origin = req.headers.get("origin") ?? "";
+  const isAllowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o));
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : "",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const originAllowed = !!corsHeaders["Access-Control-Allow-Origin"];
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS } });
+    return originAllowed
+      ? new Response(null, { status: 204, headers: corsHeaders })
+      : new Response(null, { status: 403 });
   }
 
-  const corsHeaders = getCorsHeaders(req);
-  if (!corsHeaders["Access-Control-Allow-Origin"]) return forbiddenResponse();
+  if (!originAllowed) {
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403, headers: { "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const { image_url } = await req.json();
