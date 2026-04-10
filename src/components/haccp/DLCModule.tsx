@@ -19,11 +19,7 @@ interface DLCModuleProps {
 }
 
 export default function DLCModule({ userId }: DLCModuleProps) {
-  const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
-  const { employees } = useEmployees(userId);
-  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
-  const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
@@ -39,17 +35,6 @@ export default function DLCModule({ userId }: DLCModuleProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showIdentify, setShowIdentify] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-
-  const requireAuth = useCallback((action: () => void) => {
-    if (isIdentified) { action(); } else { setPendingAction(() => action); setShowIdentify(true); }
-  }, [isIdentified]);
-
-  const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
-    startSession(emp);
-    setShowIdentify(false);
-    if (pendingAction) { pendingAction(); setPendingAction(null); }
   }, [startSession, pendingAction]);
 
   const handleSubmit = async () => {
