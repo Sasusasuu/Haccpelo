@@ -11,6 +11,7 @@ export interface EstablishmentProfile {
   city: string;
   manager_name: string;
   onboarding_completed: boolean;
+  manager_pin_hash: string | null;
 }
 
 const DEFAULT_PROFILE: EstablishmentProfile = {
