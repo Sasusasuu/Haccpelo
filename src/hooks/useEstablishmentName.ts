@@ -11,7 +11,7 @@ export interface EstablishmentProfile {
   city: string;
   manager_name: string;
   onboarding_completed: boolean;
-  manager_pin_hash: string | null;
+  has_manager_pin: boolean;
   cgu_accepted_at: string | null;
   cgv_accepted_at: string | null;
   privacy_policy_accepted_at: string | null;
@@ -29,7 +29,7 @@ const DEFAULT_PROFILE: EstablishmentProfile = {
   city: "",
   manager_name: "",
   onboarding_completed: false,
-  manager_pin_hash: null,
+  has_manager_pin: false,
   cgu_accepted_at: null,
   cgv_accepted_at: null,
   privacy_policy_accepted_at: null,
@@ -60,7 +60,7 @@ export function useEstablishmentName(userId: string | undefined) {
           city: (data as any).city || "",
           manager_name: (data as any).manager_name || "",
           onboarding_completed: (data as any).onboarding_completed ?? false,
-          manager_pin_hash: (data as any).manager_pin_hash ?? null,
+          has_manager_pin: !!(data as any).manager_pin_hash,
           cgu_accepted_at: (data as any).cgu_accepted_at ?? null,
           cgv_accepted_at: (data as any).cgv_accepted_at ?? null,
           privacy_policy_accepted_at: (data as any).privacy_policy_accepted_at ?? null,

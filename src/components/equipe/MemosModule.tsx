@@ -125,6 +125,7 @@ export default function MemosModule({ userId }: MemosModuleProps) {
         open={showIdentify}
         onClose={() => { setShowIdentify(false); setPendingAction(null); }}
         employees={employees}
+        userId={userId}
         onIdentified={handleIdentified}
         verifyManagerPin={verifyPin}
         title="Identification requise"

@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Employee, verifyEmployeePin } from "@/hooks/useEmployees";
+import { Employee } from "@/hooks/useEmployees";
 import { Nfc } from "lucide-react";
 import { toast } from "sonner";
+import { identifyByPinRemote, matchNfcRemote } from "@/lib/pinUtils";
 
 interface NDEFReadingEvent extends Event { serialNumber: string; }
 interface NDEFReader { scan(): Promise<void>; addEventListener(type: string, listener: (event: NDEFReadingEvent) => void): void; }
@@ -18,16 +19,15 @@ interface IdentifyModalProps {
   open: boolean;
   onClose: () => void;
   employees: Employee[];
-  /** If true, only managers can authenticate */
+  userId: string;
   managersOnly?: boolean;
   onIdentified: (employee: Employee) => void;
   title?: string;
   subtitle?: string;
-  /** Optional: also accept the manager legacy PIN (async) */
   verifyManagerPin?: (pin: string) => Promise<boolean>;
 }
 
-export default function IdentifyModal({ open, onClose, employees, managersOnly = false, onIdentified, title = "Identification requise", subtitle, verifyManagerPin }: IdentifyModalProps) {
+export default function IdentifyModal({ open, onClose, employees, userId, managersOnly = false, onIdentified, title = "Identification requise", subtitle, verifyManagerPin }: IdentifyModalProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -46,7 +46,7 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
     setValidating(true);
     try {
       const candidates = managersOnly ? employees.filter(e => e.is_manager) : employees;
-      const hasPins = candidates.some(e => e.pin_hash) || verifyManagerPin;
+      const hasPins = candidates.some(e => e.has_pin) || verifyManagerPin;
 
       if (!hasPins) {
         toast.error("Aucun PIN configuré. Demandez à un manager de définir les codes PIN dans les paramètres.");
@@ -54,16 +54,15 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
         return;
       }
 
-      // Check employee PINs
-      for (const emp of candidates) {
-        if (emp.pin_hash) {
-          const match = await verifyEmployeePin(emp, pin);
-          if (match) {
-            onIdentified(emp);
-            setPin("");
-            setValidating(false);
-            return;
-          }
+      // Server-side PIN identification
+      const matchedId = await identifyByPinRemote(userId, pin, managersOnly);
+      if (matchedId) {
+        const emp = employees.find(e => e.id === matchedId);
+        if (emp) {
+          onIdentified(emp);
+          setPin("");
+          setValidating(false);
+          return;
         }
       }
 
@@ -71,7 +70,7 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
       if (verifyManagerPin) {
         const isManager = await verifyManagerPin(pin);
         if (isManager) {
-          onIdentified({ id: "", name: "Manager", contract_hours: null, meal_type: null, nfc_badge_id: null, pin_hash: null, is_manager: true });
+          onIdentified({ id: "", name: "Manager", contract_hours: null, meal_type: null, has_pin: false, has_nfc: false, is_manager: true });
           setPin("");
           setValidating(false);
           return;
@@ -84,7 +83,7 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
     } finally {
       setValidating(false);
     }
-  }, [pin, employees, managersOnly, onIdentified, verifyManagerPin, validating]);
+  }, [pin, employees, userId, managersOnly, onIdentified, verifyManagerPin, validating]);
 
   const handleNfc = useCallback(async () => {
     if (!isNfcSupported()) {
@@ -95,12 +94,16 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
       const reader = new NDEFReader!();
       await reader.scan();
       toast.info("Approchez votre badge NFC…");
-      reader.addEventListener("reading", ((event: NDEFReadingEvent) => {
+      reader.addEventListener("reading", (async (event: NDEFReadingEvent) => {
         const badgeId = event.serialNumber || "";
-        const candidates = managersOnly ? employees.filter(e => e.is_manager) : employees;
-        const match = candidates.find(e => e.nfc_badge_id === badgeId);
-        if (match) {
-          onIdentified(match);
+        const result = await matchNfcRemote(userId, badgeId, managersOnly);
+        if (result) {
+          const emp = employees.find(e => e.id === result.employee_id);
+          if (emp) {
+            onIdentified(emp);
+          } else {
+            toast.error("Badge non reconnu" + (managersOnly ? " ou pas manager" : ""));
+          }
         } else {
           toast.error("Badge non reconnu" + (managersOnly ? " ou pas manager" : ""));
         }
@@ -108,7 +111,7 @@ export default function IdentifyModal({ open, onClose, employees, managersOnly =
     } catch {
       toast.error("Impossible d'activer le NFC.");
     }
-  }, [employees, managersOnly, onIdentified]);
+  }, [employees, userId, managersOnly, onIdentified]);
 
   return (
     <Dialog open={open} onOpenChange={() => onClose()}>

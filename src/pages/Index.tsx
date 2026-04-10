@@ -57,7 +57,7 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
   }
 
   // PIN check disabled for now
-  // if (!profile.manager_pin_hash) {
+  // if (!profile.has_manager_pin) {
   //   return <SetupPinPrompt userId={userId} onComplete={() => refetchProfile()} />;
   // }
 

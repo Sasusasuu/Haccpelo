@@ -195,6 +195,7 @@ export default function TemperaturesModule({ userId, equipmentsList }: Temperatu
         open={showIdentify}
         onClose={() => { setShowIdentify(false); setPendingAction(null); }}
         employees={employees}
+        userId={userId}
         onIdentified={handleIdentified}
         verifyManagerPin={verifyPin}
         title="Identification requise"
