@@ -172,6 +172,11 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       doc.setFontSize(14);
       doc.text(`Export Comptable — ${monthNames[month - 1]} ${year}`, 14, 18);
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      const estabLine = [profile.establishment_name, profile.siret ? `SIRET: ${profile.siret}` : "", profile.city].filter(Boolean).join(" — ");
+      if (estabLine) doc.text(estabLine, 14, 24);
+      doc.setTextColor(0);
 
       const head = [["Employé", "Heures contrat", "Heures travaillées", "Nb jours travaillés", "Type repas", "Nb repas"]];
       const body = employees.map((emp) => {
