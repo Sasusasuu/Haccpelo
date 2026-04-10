@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 import { useTemperatureLogs } from "@/hooks/useTemperatureLogs";
 import { useCleaningPlan } from "@/hooks/useCleaningPlan";
 import { useProducts } from "@/hooks/useProducts";
@@ -21,6 +22,7 @@ import autoTable from "jspdf-autotable";
 interface HACCPReportModuleProps {
   userId: string;
   establishmentName?: string;
+  profile?: EstablishmentProfile;
 }
 
 const MONTH_NAMES = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -36,7 +38,7 @@ function getMonthOptions() {
   return opts;
 }
 
-export default function HACCPReportModule({ userId, establishmentName = "Mon établissement" }: HACCPReportModuleProps) {
+export default function HACCPReportModule({ userId, establishmentName = "Mon établissement", profile }: HACCPReportModuleProps) {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [generating, setGenerating] = useState(false);
@@ -133,7 +135,28 @@ export default function HACCPReportModule({ userId, establishmentName = "Mon ét
       doc.text(`${MONTH_NAMES[month - 1]} ${year}`, pageW / 2, y, { align: "center" });
       y += 5;
       doc.text(`${establishmentName} — Généré le ${new Date().toLocaleDateString("fr-FR")}`, pageW / 2, y, { align: "center" });
-      y += 3;
+      y += 5;
+
+      // Establishment details
+      if (profile) {
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        const details: string[] = [];
+        if (profile.siret) details.push(`SIRET: ${profile.siret}`);
+        if (profile.address || profile.postal_code || profile.city) {
+          details.push([profile.address, profile.postal_code, profile.city].filter(Boolean).join(", "));
+        }
+        if (profile.phone) details.push(`Tél: ${profile.phone}`);
+        if (profile.email) details.push(`Email: ${profile.email}`);
+        if (profile.manager_name) details.push(`Responsable: ${profile.manager_name}`);
+        if (details.length > 0) {
+          doc.text(details.join(" — "), pageW / 2, y, { align: "center" });
+          y += 4;
+        }
+        doc.setTextColor(0);
+        doc.setFontSize(11);
+      }
+
       doc.setDrawColor(17, 17, 17);
       doc.setLineWidth(0.5);
       doc.line(margin, y, pageW - margin, y);
