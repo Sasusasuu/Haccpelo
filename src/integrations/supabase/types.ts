@@ -317,6 +317,7 @@ export type Database = {
       settings: {
         Row: {
           created_at: string
+          establishment_name: string
           id: string
           manager_pin_hash: string | null
           planning_session_minutes: number
@@ -325,6 +326,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          establishment_name?: string
           id?: string
           manager_pin_hash?: string | null
           planning_session_minutes?: number
@@ -333,6 +335,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          establishment_name?: string
           id?: string
           manager_pin_hash?: string | null
           planning_session_minutes?: number

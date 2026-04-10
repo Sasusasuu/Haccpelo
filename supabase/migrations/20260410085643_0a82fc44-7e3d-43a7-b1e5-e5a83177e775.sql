@@ -1,0 +1,1 @@
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS establishment_name text NOT NULL DEFAULT 'Mon établissement';
