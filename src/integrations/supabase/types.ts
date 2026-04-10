@@ -344,51 +344,63 @@ export type Database = {
       settings: {
         Row: {
           address: string | null
+          cgu_accepted_at: string | null
+          cgv_accepted_at: string | null
           city: string | null
           created_at: string
           email: string | null
           establishment_name: string
           id: string
+          legal_documents_version: string | null
           manager_name: string | null
           manager_pin_hash: string | null
           onboarding_completed: boolean
           phone: string | null
           planning_session_minutes: number
           postal_code: string | null
+          privacy_policy_accepted_at: string | null
           siret: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           address?: string | null
+          cgu_accepted_at?: string | null
+          cgv_accepted_at?: string | null
           city?: string | null
           created_at?: string
           email?: string | null
           establishment_name?: string
           id?: string
+          legal_documents_version?: string | null
           manager_name?: string | null
           manager_pin_hash?: string | null
           onboarding_completed?: boolean
           phone?: string | null
           planning_session_minutes?: number
           postal_code?: string | null
+          privacy_policy_accepted_at?: string | null
           siret?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           address?: string | null
+          cgu_accepted_at?: string | null
+          cgv_accepted_at?: string | null
           city?: string | null
           created_at?: string
           email?: string | null
           establishment_name?: string
           id?: string
+          legal_documents_version?: string | null
           manager_name?: string | null
           manager_pin_hash?: string | null
           onboarding_completed?: boolean
           phone?: string | null
           planning_session_minutes?: number
           postal_code?: string | null
+          privacy_policy_accepted_at?: string | null
           siret?: string | null
           updated_at?: string
           user_id?: string
