@@ -25,7 +25,7 @@ interface EquipeParametresProps {
 }
 
 export default function EquipeParametres({ userId, onSignOut }: EquipeParametresProps) {
-  const { employees, addEmployee, updateEmployee, deleteEmployee } = useEmployees(userId);
+  const { employees, addEmployee, updateEmployee, setEmployeePin, deleteEmployee } = useEmployees(userId);
   const { verifyPin, changePin, planningSessionMinutes, updateSessionMinutes } = useSettings(userId);
   const { roles, addRole, updateRole, deleteRole } = useCustomRoles(userId);
   const { logs: auditLogs, loading: auditLoading, hasMore, loadMore, log: auditLog, exportCSV } = useAuditLog(userId);
@@ -115,7 +115,7 @@ export default function EquipeParametres({ userId, onSignOut }: EquipeParametres
   async function handleSetPin(empId: string, empName: string) {
     if (empPinValue.length !== 4) return;
     const hashedPin = await hashEmployeePin(empPinValue);
-    await updateEmployee(empId, { pin_hash: hashedPin });
+    await setEmployeePin(empId, hashedPin);
     await auditLog("employee_pin_changed", `PIN modifié pour "${empName}"`, currentManagerId, currentManagerName);
     setEmpPinEdit(null);
     setEmpPinValue("");

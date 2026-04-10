@@ -14,7 +14,7 @@ export function useSettings(userId: string | undefined) {
     try {
       const { data, error: dbError } = await supabase
         .from("settings")
-        .select("planning_session_minutes, manager_pin_hash")
+        .select("planning_session_minutes, has_manager_pin")
         .eq("user_id", userId)
         .maybeSingle();
       if (dbError && dbError.code === "PGRST116") {
@@ -24,8 +24,7 @@ export function useSettings(userId: string | undefined) {
         throw dbError;
       } else {
         if (data?.planning_session_minutes != null) setPlanningSessionMinutes(data.planning_session_minutes);
-        // Only store boolean, never expose hash to app state
-        setHasManagerPin(!!data?.manager_pin_hash);
+        setHasManagerPin(!!(data as any)?.has_manager_pin);
       }
     } catch {
       setError("Impossible de charger les paramètres.");
@@ -52,7 +51,7 @@ export function useSettings(userId: string | undefined) {
       const newHash = await hashPinRemote(newPin);
       const { error: dbError } = await supabase
         .from("settings")
-        .update({ manager_pin_hash: newHash })
+        .update({ manager_pin_hash: newHash } as any)
         .eq("user_id", userId);
       if (dbError) throw dbError;
       setHasManagerPin(true);

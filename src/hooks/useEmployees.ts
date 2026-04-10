@@ -30,8 +30,8 @@ export function useEmployees(userId: string | undefined) {
     name: row.name,
     contract_hours: row.contract_hours,
     meal_type: row.meal_type,
-    has_pin: !!row.pin_hash,
-    has_nfc: !!row.nfc_badge_id,
+    has_pin: !!row.has_pin,
+    has_nfc: !!row.has_nfc,
     is_manager: row.is_manager,
   });
 
@@ -41,7 +41,7 @@ export function useEmployees(userId: string | undefined) {
     try {
       const { data, error: dbError } = await supabase
         .from("employees")
-        .select("id, name, contract_hours, meal_type, pin_hash, nfc_badge_id, is_manager")
+        .select("id, name, contract_hours, meal_type, has_pin, has_nfc, is_manager")
         .eq("user_id", userId)
         .order("created_at", { ascending: true });
       if (dbError) throw dbError;
@@ -62,7 +62,7 @@ export function useEmployees(userId: string | undefined) {
       const { data, error: dbError } = await supabase
         .from("employees")
         .insert({ user_id: userId, name, contract_hours: contractHours ?? null })
-        .select("id, name, contract_hours, meal_type, pin_hash, nfc_badge_id, is_manager")
+        .select("id, name, contract_hours, meal_type, has_pin, has_nfc, is_manager")
         .single();
       if (dbError) throw dbError;
       if (data) setEmployees(prev => [...prev, mapEmployee(data)]);
@@ -71,19 +71,34 @@ export function useEmployees(userId: string | undefined) {
     }
   };
 
-  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type" | "is_manager">> & { pin_hash?: string | null; nfc_badge_id?: string | null }) => {
+  const setEmployeePin = async (id: string, hashedPin: string) => {
+    if (!userId) return;
+    setError(null);
+    try {
+      const { error: dbError } = await supabase
+        .from("employees")
+        .update({ pin_hash: hashedPin } as any)
+        .eq("id", id)
+        .eq("user_id", userId);
+      if (dbError) throw dbError;
+      setEmployees(prev => prev.map(e => e.id === id ? { ...e, has_pin: true } : e));
+    } catch {
+      setError("Impossible de modifier le PIN.");
+    }
+  };
+
+  const updateEmployee = async (id: string, updates: Partial<Pick<Employee, "name" | "contract_hours" | "meal_type" | "is_manager">> & { nfc_badge_id?: string | null }) => {
     if (!userId) return;
     setError(null);
     try {
       const dbUpdates: {
         name?: string; contract_hours?: number | null; meal_type?: string | null;
-        is_manager?: boolean; pin_hash?: string | null; nfc_badge_id?: string | null;
+        is_manager?: boolean; nfc_badge_id?: string | null;
       } = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.contract_hours !== undefined) dbUpdates.contract_hours = updates.contract_hours;
       if (updates.meal_type !== undefined) dbUpdates.meal_type = updates.meal_type;
       if (updates.is_manager !== undefined) dbUpdates.is_manager = updates.is_manager;
-      if (updates.pin_hash !== undefined) dbUpdates.pin_hash = updates.pin_hash;
       if (updates.nfc_badge_id !== undefined) dbUpdates.nfc_badge_id = updates.nfc_badge_id;
 
       const { error: dbError } = await supabase
@@ -100,7 +115,6 @@ export function useEmployees(userId: string | undefined) {
         if (updates.contract_hours !== undefined) updated.contract_hours = updates.contract_hours;
         if (updates.meal_type !== undefined) updated.meal_type = updates.meal_type;
         if (updates.is_manager !== undefined) updated.is_manager = updates.is_manager;
-        if (updates.pin_hash !== undefined) updated.has_pin = !!updates.pin_hash;
         if (updates.nfc_badge_id !== undefined) updated.has_nfc = !!updates.nfc_badge_id;
         return updated;
       }));
@@ -121,5 +135,5 @@ export function useEmployees(userId: string | undefined) {
     }
   };
 
-  return { employees, loading, error, addEmployee, updateEmployee, deleteEmployee, retry: fetchEmployees };
+  return { employees, loading, error, addEmployee, updateEmployee, setEmployeePin, deleteEmployee, retry: fetchEmployees };
 }
