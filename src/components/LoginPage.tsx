@@ -131,4 +131,6 @@ const LoginPage = forwardRef<HTMLDivElement>(function LoginPage(_props, ref) {
       </Card>
     </div>
   );
-}
+});
+
+export default LoginPage;
