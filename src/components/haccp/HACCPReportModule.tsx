@@ -586,6 +586,9 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Photo traceability history */}
+      <TraceabilityPhotoHistory userId={userId} />
     </div>
   );
 }
