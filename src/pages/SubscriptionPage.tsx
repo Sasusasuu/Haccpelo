@@ -93,7 +93,7 @@ interface SubscriptionPageProps {
 
 function getButtonConfig(planKey: string, currentStatus: string) {
   if (planKey === "enterprise") {
-    return { label: "Bientôt disponible", disabled: true, variant: "outline" as const };
+    return { label: "Prochainement...", disabled: true, variant: "outline" as const };
   }
   if (planKey === currentStatus) {
     return { label: "Votre plan actuel", disabled: true, variant: "secondary" as const };
