@@ -360,6 +360,7 @@ export type Database = {
           postal_code: string | null
           privacy_policy_accepted_at: string | null
           siret: string | null
+          subscription_status: string
           updated_at: string
           user_id: string
         }
@@ -381,6 +382,7 @@ export type Database = {
           postal_code?: string | null
           privacy_policy_accepted_at?: string | null
           siret?: string | null
+          subscription_status?: string
           updated_at?: string
           user_id: string
         }
@@ -402,6 +404,7 @@ export type Database = {
           postal_code?: string | null
           privacy_policy_accepted_at?: string | null
           siret?: string | null
+          subscription_status?: string
           updated_at?: string
           user_id?: string
         }
