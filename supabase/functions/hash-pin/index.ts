@@ -136,6 +136,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (!checkRateLimit(`mgr:${user_id}`)) return rateLimitResponse();
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("settings").select("manager_pin_hash").eq("user_id", user_id).single();
       if (error || !data?.manager_pin_hash) {
