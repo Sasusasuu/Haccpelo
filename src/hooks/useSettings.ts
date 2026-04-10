@@ -45,22 +45,14 @@ export function useSettings(userId: string | undefined) {
         .eq("user_id", userId)
         .single();
       if (dbError && dbError.code === "PGRST116") {
-        // No settings row yet — create one with default PIN "1234"
-        const defaultHash = await hashPinRemote("1234");
-        await supabase.from("settings").insert({ user_id: userId, manager_pin_hash: defaultHash });
-        setManagerPinHash(defaultHash);
+        // No settings row yet — create one without a PIN (user must set their own)
+        await supabase.from("settings").insert({ user_id: userId });
+        setManagerPinHash(null);
       } else if (dbError) {
         throw dbError;
       } else {
         if (data?.planning_session_minutes != null) setPlanningSessionMinutes(data.planning_session_minutes);
-        if (data?.manager_pin_hash) {
-          setManagerPinHash(data.manager_pin_hash);
-        } else {
-          // PIN was reset (legacy migration) — set default "1234"
-          const defaultHash = await hashPinRemote("1234");
-          await supabase.from("settings").update({ manager_pin_hash: defaultHash }).eq("user_id", userId);
-          setManagerPinHash(defaultHash);
-        }
+        setManagerPinHash(data?.manager_pin_hash ?? null);
       }
     } catch {
       setError("Impossible de charger les paramètres.");
