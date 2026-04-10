@@ -18,6 +18,18 @@ interface Plan {
   description: string;
   recommended: boolean;
   disabled: boolean;
+  monthlyNumeric?: number;
+  features: Feature[];
+}
+
+interface Plan {
+  key: string;
+  title: string;
+  price: string;
+  priceLabel: string;
+  description: string;
+  recommended: boolean;
+  disabled: boolean;
   features: Feature[];
 }
 
@@ -30,6 +42,7 @@ const plans: Plan[] = [
     description: "L'essentiel pour gérer votre hygiène et votre équipe au quotidien.",
     recommended: false,
     disabled: false,
+    monthlyNumeric: 29,
     features: [
       { label: "Lorem ipsum dolor sit amet", included: true },
       { label: "Consectetur adipiscing elit", included: true },
@@ -49,6 +62,7 @@ const plans: Plan[] = [
     description: "Toute la puissance de l'IA et des rapports automatisés pour gagner du temps.",
     recommended: true,
     disabled: false,
+    monthlyNumeric: 890,
     features: [
       { label: "Lorem ipsum dolor sit amet", included: true },
       { label: "Consectetur adipiscing elit", included: true },
@@ -168,6 +182,12 @@ export default function SubscriptionPage({ subscriptionStatus, userId }: Subscri
                     <span className="text-muted-foreground text-sm">{plan.priceLabel}</span>
                   )}
                 </div>
+                {plan.monthlyNumeric && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <span className="font-semibold text-primary">-10%</span> si payé annuellement.{" "}
+                    Soit <span className="font-semibold">{Math.round(plan.monthlyNumeric * 0.9 * 12)}€</span>/an au lieu de <span className="line-through">{plan.monthlyNumeric * 12}€</span>
+                  </p>
+                )}
                 <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
 
