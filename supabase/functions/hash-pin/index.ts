@@ -9,6 +9,29 @@ const corsHeaders = {
 const ITERATIONS = 100000;
 const SALT_LENGTH = 16;
 
+// --- Rate limiting (in-memory) ---
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+function rateLimitResponse() {
+  return new Response(
+    JSON.stringify({ error: "Trop de tentatives, réessayez dans 60 secondes" }),
+    { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 async function hashPin(pin: string): Promise<string> {
   const encoder = new TextEncoder();
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
