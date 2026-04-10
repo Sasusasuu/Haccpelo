@@ -74,6 +74,16 @@ const plans: Plan[] = [
       { label: "Cupidatat non proident", included: true },
     ],
   },
+  {
+    key: "enterprise",
+    title: "À venir...",
+    price: "",
+    priceLabel: "",
+    description: "",
+    recommended: false,
+    disabled: true,
+    features: [],
+  },
 ];
 
 interface SubscriptionPageProps {
@@ -83,7 +93,7 @@ interface SubscriptionPageProps {
 
 function getButtonConfig(planKey: string, currentStatus: string) {
   if (planKey === "enterprise") {
-    return { label: "Bientôt disponible", disabled: true, variant: "outline" as const };
+    return { label: "Prochainement...", disabled: true, variant: "outline" as const };
   }
   if (planKey === currentStatus) {
     return { label: "Votre plan actuel", disabled: true, variant: "secondary" as const };
@@ -135,7 +145,7 @@ export default function SubscriptionPage({ subscriptionStatus, userId }: Subscri
         </AlertDescription>
       </Alert>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map((plan) => {
           const btn = getButtonConfig(plan.key, status);
           const isCurrent = plan.key === status;
