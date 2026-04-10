@@ -39,7 +39,13 @@ const LoginPage = forwardRef<HTMLDivElement>(function LoginPage(_props, ref) {
 
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) {
-      setError("Impossible de créer le compte. Vérifiez vos informations.");
+      if (error.message?.includes("weak_password") || (error as any)?.code === "weak_password") {
+        setError("Ce mot de passe est trop courant et a été compromis. Choisissez-en un autre.");
+      } else if (error.message?.includes("already registered") || error.message?.includes("already been registered")) {
+        setError("Un compte avec cet email existe déjà. Connectez-vous.");
+      } else {
+        setError("Impossible de créer le compte. Vérifiez vos informations.");
+      }
     } else {
       setSignupSent(true);
     }
