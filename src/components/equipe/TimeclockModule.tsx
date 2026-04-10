@@ -49,6 +49,9 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
   const [nfcResult, setNfcResult] = useState<{ empName: string; time: string; action: string } | null>(null);
   const [nfcAssignModal, setNfcAssignModal] = useState<{ badgeId: string } | null>(null);
   const [nfcAssignEmpId, setNfcAssignEmpId] = useState("");
+  const [nfcAssignPin, setNfcAssignPin] = useState("");
+  const [nfcAssignPinError, setNfcAssignPinError] = useState(false);
+  const nfcAssignPinRef = useRef<HTMLInputElement>(null);
 
   const today = new Date().toISOString().split("T")[0];
   const loading = empLoading || entriesLoading;
@@ -157,12 +160,25 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
   }, [employees, entries, clockIn, clockOut, auditLog]);
 
   async function assignBadge() {
-    if (!nfcAssignModal || !nfcAssignEmpId) return;
+    if (!nfcAssignModal || !nfcAssignEmpId || !nfcAssignPin) return;
+    // Verify manager PIN first
+    const managers = employees.filter(e => e.is_manager && e.pin_hash);
+    let ok = false;
+    for (const m of managers) {
+      if (await verifyEmployeePin(m, nfcAssignPin)) { ok = true; break; }
+    }
+    if (!ok) {
+      setNfcAssignPinError(true);
+      setNfcAssignPin("");
+      setTimeout(() => setNfcAssignPinError(false), 1500);
+      return;
+    }
     await updateEmployee(nfcAssignEmpId, { nfc_badge_id: nfcAssignModal.badgeId });
     const emp = employees.find(e => e.id === nfcAssignEmpId);
     toast.success(`Badge associé à ${emp?.name ?? "l'employé"}`);
     setNfcAssignModal(null);
     setNfcAssignEmpId("");
+    setNfcAssignPin("");
   }
 
   if (error) return <ErrorAlert message={error} onRetry={empRetry || entriesRetry} />;
@@ -344,12 +360,12 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
         </DialogContent>
       </Dialog>
 
-      {/* NFC Badge Assignment Modal */}
-      <Dialog open={!!nfcAssignModal} onOpenChange={() => setNfcAssignModal(null)}>
+      {/* NFC Badge Assignment Modal — Manager only */}
+      <Dialog open={!!nfcAssignModal} onOpenChange={() => { setNfcAssignModal(null); setNfcAssignPin(""); setNfcAssignPinError(false); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Badge non reconnu</DialogTitle>
-            <p className="text-sm text-muted-foreground">Ce badge n'est associé à aucun employé. Voulez-vous l'attribuer ?</p>
+            <p className="text-sm text-muted-foreground">Ce badge n'est associé à aucun employé. Seul un manager peut l'attribuer.</p>
           </DialogHeader>
           <Select value={nfcAssignEmpId} onValueChange={setNfcAssignEmpId}>
             <SelectTrigger><SelectValue placeholder="Choisir un employé" /></SelectTrigger>
@@ -359,9 +375,20 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
               ))}
             </SelectContent>
           </Select>
+          <Input
+            ref={nfcAssignPinRef}
+            type="password"
+            maxLength={4}
+            value={nfcAssignPin}
+            onChange={e => setNfcAssignPin(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && assignBadge()}
+            placeholder="Code PIN manager"
+            className={`text-center tracking-[6px] ${nfcAssignPinError ? "border-destructive bg-destructive/10" : ""}`}
+          />
+          {nfcAssignPinError && <p className="text-xs text-destructive">Code manager incorrect</p>}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNfcAssignModal(null)}>Annuler</Button>
-            <Button onClick={assignBadge} disabled={!nfcAssignEmpId}>Associer</Button>
+            <Button variant="outline" onClick={() => { setNfcAssignModal(null); setNfcAssignPin(""); }}>Annuler</Button>
+            <Button onClick={assignBadge} disabled={!nfcAssignEmpId || !nfcAssignPin}>Associer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

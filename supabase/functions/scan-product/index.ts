@@ -38,6 +38,7 @@ Réponds UNIQUEMENT avec un JSON valide contenant ces champs. Les champs non tro
 Aujourd'hui : ${today}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      signal: AbortSignal.timeout(15000),
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -81,10 +82,14 @@ Aujourd'hui : ${today}`;
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      try {
+        const result = JSON.parse(jsonMatch[0]);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        console.error("JSON parse failed:", jsonMatch[0]);
+      }
     }
 
     return new Response(JSON.stringify({ error: "Could not parse AI response" }), {
