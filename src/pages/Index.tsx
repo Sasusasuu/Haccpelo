@@ -84,6 +84,17 @@ function AuthenticatedApp({ userId, onSignOut }: { userId: string; onSignOut: ()
     );
   }
 
+  if (!profile.has_manager_pin) {
+    return (
+      <SetupPinPrompt
+        userId={userId}
+        onComplete={async () => {
+          await refetchProfile();
+        }}
+      />
+    );
+  }
+
   return (
     <AppLayout onSignOut={onSignOut} establishmentName={establishmentName}>
       <Suspense fallback={<ModuleFallback />}>
