@@ -37,6 +37,7 @@ export default function Dashboard({ userId }: DashboardProps) {
 
   const today = todayStr();
   const loading = prodLoading || empLoading || tempLoading || cleanLoading || equipLoading || entriesLoading || memosLoading;
+  const anyError = prodError || tempError || cleanError || equipError;
 
   const dlcStats = useMemo(() => {
     let expired = 0, urgent = 0, ok = 0;
