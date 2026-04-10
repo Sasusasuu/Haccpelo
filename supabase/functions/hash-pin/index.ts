@@ -81,8 +81,29 @@ function getServiceClient() {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 }
+// --- Audit logging (fire-and-forget, never blocks response) ---
+async function logAudit(
+  supabase: ReturnType<typeof getServiceClient>,
+  params: { user_id?: string; employee_id?: string; action_type: string; description: string }
+) {
+  try {
+    // user_id is required by the table — skip if missing
+    if (!params.user_id) return;
+    await supabase.from("audit_logs").insert({
+      user_id: params.user_id,
+      employee_id: params.employee_id || null,
+      employee_name: null,
+      action_type: params.action_type,
+      category: "sécurité",
+      description: params.description,
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("audit_log insert failed:", e);
+  }
+}
 
-serve(async (req) => {
+
   const corsHeaders = getCorsHeaders(req);
   const originAllowed = !!corsHeaders["Access-Control-Allow-Origin"];
 
