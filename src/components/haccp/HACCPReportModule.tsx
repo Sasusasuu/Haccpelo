@@ -6,7 +6,7 @@ import { useEquipments } from "@/hooks/useEquipments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSettings } from "@/hooks/useSettings";
 import { useIdentitySession } from "@/hooks/useIdentitySession";
-import { IdentifyModal } from "@/components/equipe/IdentifyModal";
+import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,11 @@ export default function HACCPReportModule({ userId }: HACCPReportModuleProps) {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [generating, setGenerating] = useState(false);
+  const [showIdentify, setShowIdentify] = useState(false);
+
+  const { employees } = useEmployees(userId);
+  const { verifyPin, planningSessionMinutes } = useSettings(userId);
+  const { identifiedEmployee, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
   const { logs: tempLogs, loading: tempLoading } = useTemperatureLogs(userId);
   const { tasks: cleaningTasks, logs: cleaningLogs, loading: cleanLoading } = useCleaningPlan(userId);
