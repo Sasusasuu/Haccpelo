@@ -135,7 +135,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
 
   const applyScan = () => {
     if (!scanResult) return;
-    const updates: any = {};
+    const updates: Partial<ReturnType<typeof makeDefaultForm>> = {};
     if (scanResult.nom) updates.nom = scanResult.nom;
     if (scanResult.categorie) updates.categorie = scanResult.categorie;
     if (scanResult.fab) updates.fab = scanResult.fab;
@@ -163,7 +163,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
 
   const applySuggestion = () => {
     if (aiSuggestion?.dlc) {
-      const updates: any = { dlc: aiSuggestion.dlc };
+      const updates: Partial<ReturnType<typeof makeDefaultForm>> = { dlc: aiSuggestion.dlc };
       if (aiSuggestion.categorie) updates.categorie = aiSuggestion.categorie;
       setForm({ ...form, ...updates });
       setAiSuggestion(null);
@@ -438,7 +438,7 @@ export default function DLCModule({ userId, establishmentName = "Mon établissem
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p: any) => (
+              {filtered.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="p-2">
                     {p.photo_url ? (
