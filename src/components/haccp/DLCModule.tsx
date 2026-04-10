@@ -64,6 +64,25 @@ export default function DLCModule({ userId }: DLCModuleProps) {
     produits.filter((p: any) => { const s = statusOf(p.dlc); return s === "expire" || s === "urgent"; }).length
   , [produits]);
 
+  if (loading) {
+    return (
+      <div className="space-y-4 p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center space-y-3">
+          <p className="text-destructive font-medium">{error}</p>
+          <Button variant="outline" onClick={retry}>Réessayer</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const getStatusBadge = (dlc: string) => {
     const s = statusOf(dlc);
     if (s === "expire") return <Badge variant="destructive">Expiré</Badge>;
