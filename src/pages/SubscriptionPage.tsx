@@ -62,6 +62,7 @@ const plans: Plan[] = [
     description: "Toute la puissance de l'IA et des rapports automatisés pour gagner du temps.",
     recommended: true,
     disabled: false,
+    monthlyNumeric: 890,
     features: [
       { label: "Lorem ipsum dolor sit amet", included: true },
       { label: "Consectetur adipiscing elit", included: true },
