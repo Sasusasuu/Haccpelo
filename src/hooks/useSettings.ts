@@ -1,33 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-async function hashPinRemote(pin: string): Promise<string> {
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hash-pin`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
-    body: JSON.stringify({ action: "hash", pin }),
-  });
-  if (!res.ok) throw new Error("Failed to hash PIN");
-  const data = await res.json();
-  return data.hash;
-}
-
-async function verifyPinRemote(pin: string, hash: string): Promise<boolean> {
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hash-pin`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
-    body: JSON.stringify({ action: "verify", pin, hash }),
-  });
-  if (!res.ok) return false;
-  const data = await res.json();
-  return data.valid === true;
-}
+import { hashPinRemote, verifyPinRemote } from "@/lib/pinUtils";
 
 export function useSettings(userId: string | undefined) {
   const [managerPinHash, setManagerPinHash] = useState<string | null>(null);
@@ -67,7 +40,6 @@ export function useSettings(userId: string | undefined) {
     return verifyPinRemote(pin, managerPinHash);
   };
 
-  // Fix: validate PIN format before calling edge function
   const changePin = async (newPin: string) => {
     if (!userId) return;
     if (!/^\d{4}$/.test(newPin)) {
@@ -94,7 +66,7 @@ export function useSettings(userId: string | undefined) {
     try {
       const { error: dbError } = await supabase
         .from("settings")
-        .update({ planning_session_minutes: minutes } as any)
+        .update({ planning_session_minutes: minutes })
         .eq("user_id", userId);
       if (dbError) throw dbError;
       setPlanningSessionMinutes(minutes);
