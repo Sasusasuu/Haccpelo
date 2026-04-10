@@ -1,10 +1,6 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
-import { useEmployees } from "@/hooks/useEmployees";
-import { useSettings } from "@/hooks/useSettings";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { useIdentitySession } from "@/hooks/useIdentitySession";
-import IdentifyModal from "@/components/equipe/IdentifyModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Pencil, Trash2, Tag, Printer, Camera, Sparkles, Info, Shield } from "lucide-react";
-import { CATEGORIES, statusOf, fmtDate, todayStr, tomorrowStr, makeDefaultForm } from "@/lib/constants";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Search, Pencil, Trash2, Tag, Printer, Camera, Sparkles, Info } from "lucide-react";
+import { CATEGORIES, statusOf, fmtDate, todayStr, makeDefaultForm } from "@/lib/constants";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface DLCModuleProps {
   userId: string;
@@ -24,10 +20,7 @@ interface DLCModuleProps {
 
 export default function DLCModule({ userId }: DLCModuleProps) {
   const { produits, addProduct, updateProduct, deleteProduct, uploadPhoto } = useProducts(userId);
-  const { employees } = useEmployees(userId);
-  const { planningSessionMinutes, verifyPin } = useSettings(userId);
   const { log: auditLog } = useAuditLog(userId);
-  const { identifiedEmployee, isIdentified, startSession, clearSession } = useIdentitySession(planningSessionMinutes);
 
   const [form, setForm] = useState(makeDefaultForm);
   const [editId, setEditId] = useState<string | null>(null);
@@ -43,33 +36,20 @@ export default function DLCModule({ userId }: DLCModuleProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showIdentify, setShowIdentify] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  
 
-  const requireAuth = useCallback((action: () => void) => {
-    if (isIdentified) { action(); } else { setPendingAction(() => action); setShowIdentify(true); }
-  }, [isIdentified]);
-
-  const handleIdentified = useCallback((emp: import("@/hooks/useEmployees").Employee) => {
-    startSession(emp);
-    setShowIdentify(false);
-    if (pendingAction) { pendingAction(); setPendingAction(null); }
-  }, [startSession, pendingAction]);
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.nom || !form.dlc) return;
-    requireAuth(async () => {
-      if (editId !== null) {
-        await updateProduct(editId, form);
-        await auditLog("product_updated", `Produit modifié "${form.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-        setEditId(null);
-      } else {
-        await addProduct(form);
-        await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-      }
-      setForm(makeDefaultForm());
-      setView("liste");
-    });
+    if (editId !== null) {
+      await updateProduct(editId, form);
+      await auditLog("product_updated", `Produit modifié "${form.nom}"`, null, null);
+      setEditId(null);
+    } else {
+      await addProduct(form);
+      await auditLog("product_added", `Produit ajouté "${form.nom}" DLC ${fmtDate(form.dlc)}`, null, null);
+    }
+    setForm(makeDefaultForm());
+    setView("liste");
   };
 
   const filtered = useMemo(() =>
@@ -159,7 +139,7 @@ export default function DLCModule({ userId }: DLCModuleProps) {
         <div className="flex gap-2 no-print">
           <Button variant="outline" onClick={() => setView("liste")}>← Retour</Button>
           <Button onClick={() => {
-            auditLog("label_printed", `Étiquette imprimée "${etiquette.nom}" DLC ${fmtDate(etiquette.dlc)}`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
+            auditLog("label_printed", `Étiquette imprimée "${etiquette.nom}" DLC ${fmtDate(etiquette.dlc)}`, null, null);
             window.print();
           }}>
             <Printer className="h-4 w-4 mr-2" />Imprimer
@@ -423,28 +403,15 @@ export default function DLCModule({ userId }: DLCModuleProps) {
           )}
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Annuler</Button>
-            <Button variant="destructive" onClick={() => {
+            <Button variant="destructive" onClick={async () => {
               const product = confirmDelete;
               setConfirmDelete(null);
-              requireAuth(async () => {
-                await deleteProduct(product.id);
-                await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, identifiedEmployee?.id ?? null, identifiedEmployee?.name ?? null);
-              });
+              await deleteProduct(product.id);
+              await auditLog("product_deleted", `Produit supprimé "${product.nom}"`, null, null);
             }}>Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Identify Modal */}
-      <IdentifyModal
-        open={showIdentify}
-        onClose={() => { setShowIdentify(false); setPendingAction(null); }}
-        employees={employees}
-        onIdentified={handleIdentified}
-        verifyManagerPin={verifyPin}
-        title="Identification requise"
-        subtitle="Entrez votre code pour gérer les produits."
-      />
     </div>
   );
 }

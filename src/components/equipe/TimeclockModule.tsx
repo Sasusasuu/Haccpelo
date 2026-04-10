@@ -34,6 +34,10 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
   const { employees, loading: empLoading, error: empError, retry: empRetry, updateEmployee } = useEmployees(userId);
   const { entries, loading: entriesLoading, error: entriesError, clockIn, clockOut, retry: entriesRetry } = useTimeEntries(userId);
   const { log: auditLog } = useAuditLog(userId);
+  const [historyUnlocked, setHistoryUnlocked] = useState(false);
+  const [historyPin, setHistoryPin] = useState("");
+  const [historyPinError, setHistoryPinError] = useState(false);
+  const historyPinRef = useRef<HTMLInputElement>(null);
 
   const [pinModal, setPinModal] = useState<{ emp: { id: string; name: string }; action: string } | null>(null);
   const [pinInput, setPinInput] = useState("");
@@ -256,26 +260,66 @@ export default function TimeclockModule({ userId }: TimeclockModuleProps) {
 
       <div className="space-y-2">
         <h3 className="text-sm font-semibold">Historique récent</h3>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employé</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Durée</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.flatMap(emp => getHistory(emp.id).map(entry => (
-                <TableRow key={entry.id}>
-                  <TableCell>{emp.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{new Date(entry.work_date).toLocaleDateString("fr-FR")}</TableCell>
-                  <TableCell className="font-medium">{fmtDuration(diffH(entry.arrival_ts, entry.departure_ts))}</TableCell>
+        {!historyUnlocked ? (
+          <Card>
+            <CardContent className="p-4 space-y-2">
+              <p className="text-sm text-muted-foreground">Réservé aux managers — entrez votre code PIN.</p>
+              <div className="flex gap-2 max-w-xs">
+                <Input
+                  ref={historyPinRef}
+                  type="password"
+                  maxLength={4}
+                  value={historyPin}
+                  onChange={e => setHistoryPin(e.target.value)}
+                  onKeyDown={async e => {
+                    if (e.key === "Enter") {
+                      const managers = employees.filter(emp => emp.is_manager && emp.pin_hash);
+                      let ok = false;
+                      for (const m of managers) {
+                        if (await verifyEmployeePin(m, historyPin)) { ok = true; break; }
+                      }
+                      if (ok) { setHistoryUnlocked(true); setHistoryPin(""); setHistoryPinError(false); }
+                      else { setHistoryPinError(true); setHistoryPin(""); setTimeout(() => setHistoryPinError(false), 1500); }
+                    }
+                  }}
+                  placeholder="Code PIN manager"
+                  className={`text-center tracking-[6px] ${historyPinError ? "border-destructive bg-destructive/10" : ""}`}
+                />
+                <Button onClick={async () => {
+                  const managers = employees.filter(emp => emp.is_manager && emp.pin_hash);
+                  let ok = false;
+                  for (const m of managers) {
+                    if (await verifyEmployeePin(m, historyPin)) { ok = true; break; }
+                  }
+                  if (ok) { setHistoryUnlocked(true); setHistoryPin(""); setHistoryPinError(false); }
+                  else { setHistoryPinError(true); setHistoryPin(""); setTimeout(() => setHistoryPinError(false), 1500); }
+                }}>Accéder</Button>
+              </div>
+              {historyPinError && <p className="text-xs text-destructive">Code incorrect ou pas manager</p>}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employé</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Durée</TableHead>
                 </TableRow>
-              )))}
-            </TableBody>
-          </Table>
-        </Card>
+              </TableHeader>
+              <TableBody>
+                {employees.flatMap(emp => getHistory(emp.id).map(entry => (
+                  <TableRow key={entry.id}>
+                    <TableCell>{emp.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{new Date(entry.work_date).toLocaleDateString("fr-FR")}</TableCell>
+                    <TableCell className="font-medium">{fmtDuration(diffH(entry.arrival_ts, entry.departure_ts))}</TableCell>
+                  </TableRow>
+                )))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
       </div>
 
       {/* PIN Modal — employee's own PIN */}
