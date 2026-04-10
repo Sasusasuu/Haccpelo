@@ -80,7 +80,19 @@ export function useProducts(userId: string | undefined) {
         .select("id, nom, categorie, fab, dlc, quantite, photo_url")
         .single();
       if (dbError) throw dbError;
-      if (data) setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "", photo_url: data.photo_url || "" }]);
+      if (data) {
+        setProduits(prev => [...prev, { ...data, fab: data.fab || "", quantite: data.quantite || "", photo_url: data.photo_url || "" }]);
+        // Log photo to traceability history
+        if (data.photo_url) {
+          await supabase.from("traceability_photos").insert({
+            user_id: userId,
+            product_name: data.nom,
+            categorie: data.categorie,
+            photo_url: data.photo_url,
+            product_id: data.id,
+          });
+        }
+      }
     } catch {
       setError("Impossible d'ajouter le produit.");
     }
