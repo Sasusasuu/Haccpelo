@@ -192,20 +192,31 @@ async function logAudit(
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`mgr:${user_id}`)) return rateLimitResponse(corsHeaders);
+      if (!checkRateLimit(`mgr:${user_id}`)) {
+        const sb = getServiceClient();
+        logAudit(sb, { user_id, action_type: "pin_rate_limited", description: "Rate limit dépassé pour vérification PIN manager" });
+        return rateLimitResponse(corsHeaders);
+      }
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("settings").select("manager_pin_hash").eq("user_id", user_id).single();
       if (error || !data?.manager_pin_hash) {
+        logAudit(supabase, { user_id, action_type: "pin_failed", description: "Vérification PIN manager échouée (pas de hash)" });
         return new Response(JSON.stringify({ valid: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (!data.manager_pin_hash.includes(":")) {
+        logAudit(supabase, { user_id, action_type: "pin_failed", description: "Vérification PIN manager échouée (hash legacy)" });
         return new Response(JSON.stringify({ valid: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const valid = await verifyPin(pin, data.manager_pin_hash);
+      logAudit(supabase, {
+        user_id,
+        action_type: valid ? "pin_success" : "pin_failed",
+        description: valid ? "Vérification PIN manager réussie" : "Vérification PIN manager échouée (code incorrect)",
+      });
       return new Response(JSON.stringify({ valid }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -224,7 +235,11 @@ async function logAudit(
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!checkRateLimit(`idpin:${user_id}`)) return rateLimitResponse(corsHeaders);
+      if (!checkRateLimit(`idpin:${user_id}`)) {
+        const sb = getServiceClient();
+        logAudit(sb, { user_id, action_type: "pin_rate_limited", description: "Rate limit dépassé pour identification PIN" });
+        return rateLimitResponse(corsHeaders);
+      }
       const supabase = getServiceClient();
       let query = supabase.from("employees").select("id, pin_hash, is_manager").eq("user_id", user_id);
       if (managers_only) query = query.eq("is_manager", true);
@@ -238,12 +253,14 @@ async function logAudit(
         if (emp.pin_hash && emp.pin_hash.includes(":")) {
           const valid = await verifyPin(pin, emp.pin_hash);
           if (valid) {
+            logAudit(supabase, { user_id, employee_id: emp.id, action_type: "pin_success", description: "Identification par PIN réussie" });
             return new Response(JSON.stringify({ found: true, employee_id: emp.id }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
         }
       }
+      logAudit(supabase, { user_id, action_type: "pin_failed", description: "Identification par PIN échouée (aucun employé correspondant)" });
       return new Response(JSON.stringify({ found: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
