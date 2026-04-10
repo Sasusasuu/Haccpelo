@@ -103,6 +103,7 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (!checkRateLimit(`emp:${employee_id}`)) return rateLimitResponse();
       const supabase = getServiceClient();
       const { data, error } = await supabase.from("employees").select("pin_hash").eq("id", employee_id).single();
       if (error || !data?.pin_hash) {
