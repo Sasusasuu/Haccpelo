@@ -3,9 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Lock } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { hashPinRemote } from "@/lib/pinUtils";
+import { Building2 } from "lucide-react";
 import type { EstablishmentProfile } from "@/hooks/useEstablishmentName";
 
 interface OnboardingFormProps {
@@ -24,8 +22,6 @@ export default function OnboardingForm({ userId, onComplete }: OnboardingFormPro
     city: "",
     manager_name: "",
   });
-  const [pin, setPin] = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -37,8 +33,6 @@ export default function OnboardingForm({ userId, onComplete }: OnboardingFormPro
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email invalide";
     if (form.phone && !/^[\d\s+()-]{6,20}$/.test(form.phone)) e.phone = "Numéro invalide";
     if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) e.postal_code = "Code postal à 5 chiffres";
-    if (!/^\d{4}$/.test(pin)) e.pin = "Le code PIN doit contenir exactement 4 chiffres";
-    if (pin !== pinConfirm) e.pinConfirm = "Les codes PIN ne correspondent pas";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -47,17 +41,13 @@ export default function OnboardingForm({ userId, onComplete }: OnboardingFormPro
     if (!validate()) return;
     setSaving(true);
     try {
-      // Hash the manager PIN
-      const pinHash = await hashPinRemote(pin);
-
       await onComplete({
         ...form,
         establishment_name: form.establishment_name.trim(),
         siret: form.siret.replace(/\s/g, ""),
         manager_name: form.manager_name.trim(),
         onboarding_completed: true,
-        manager_pin_hash: pinHash,
-      } as any);
+      });
     } finally {
       setSaving(false);
     }
@@ -119,43 +109,6 @@ export default function OnboardingForm({ userId, onComplete }: OnboardingFormPro
             <div className="space-y-1.5">
               <Label>Ville</Label>
               <Input value={form.city} onChange={e => set("city", e.target.value)} placeholder="Paris" />
-            </div>
-          </div>
-
-          {/* Manager PIN Section */}
-          <div className="border-t pt-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              <Label className="text-base font-semibold">Code PIN Manager *</Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ce code à 4 chiffres protégera l'accès aux paramètres, rapports et modifications sensibles.
-            </p>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-sm">Code PIN</Label>
-                <InputOTP maxLength={4} value={pin} onChange={(v) => { setPin(v); if (errors.pin) setErrors(prev => { const n = { ...prev }; delete n.pin; return n; }); }}>
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                  </InputOTPGroup>
-                </InputOTP>
-                {errors.pin && <p className="text-xs text-destructive">{errors.pin}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm">Confirmer le code PIN</Label>
-                <InputOTP maxLength={4} value={pinConfirm} onChange={(v) => { setPinConfirm(v); if (errors.pinConfirm) setErrors(prev => { const n = { ...prev }; delete n.pinConfirm; return n; }); }}>
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                  </InputOTPGroup>
-                </InputOTP>
-                {errors.pinConfirm && <p className="text-xs text-destructive">{errors.pinConfirm}</p>}
-              </div>
             </div>
           </div>
 
