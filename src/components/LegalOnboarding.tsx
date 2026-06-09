@@ -46,7 +46,7 @@ function LegalTextPanel({
   return (
     <div
       ref={containerRef}
-      className="h-[50vh] overflow-y-auto border rounded-md p-4 bg-muted/30 text-sm leading-relaxed whitespace-pre-line"
+      className="h-[40vh] sm:h-[50vh] overflow-y-auto overscroll-contain border rounded-md p-4 bg-muted/30 text-sm leading-relaxed whitespace-pre-line"
       onScroll={onScroll}
     >
       {text}
@@ -113,7 +113,7 @@ export default function LegalOnboarding({ userId, onComplete, onSignOut }: Legal
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4 sm:p-8">
+    <div className="fixed inset-0 z-[100] bg-background overflow-y-auto flex flex-col items-center p-4 sm:p-8">
       <div className="w-full max-w-3xl flex justify-end mb-2">
         <LogoutButton onSignOut={onSignOut} />
       </div>
