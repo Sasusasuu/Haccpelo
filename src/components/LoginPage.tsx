@@ -27,6 +27,18 @@ const LoginPage = forwardRef<HTMLDivElement>(function LoginPage(_props, ref) {
     setLoading(false);
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setError("Erreur lors de la connexion avec Google");
+    }
+    setLoading(false);
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
