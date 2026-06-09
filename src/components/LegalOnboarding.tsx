@@ -46,7 +46,7 @@ function LegalTextPanel({
   return (
     <div
       ref={containerRef}
-      className="h-[50vh] overflow-y-auto border rounded-md p-4 bg-muted/30 text-sm leading-relaxed whitespace-pre-line"
+      className="h-[40vh] sm:h-[50vh] overflow-y-auto overscroll-contain border rounded-md p-4 bg-muted/30 text-sm leading-relaxed whitespace-pre-line"
       onScroll={onScroll}
     >
       {text}
